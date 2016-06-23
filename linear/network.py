@@ -52,6 +52,9 @@ class Network:
         f = self.fz(z)
         return f.T@(self.A@f+self.b)
         
+    def MTAM(self):
+        return self.M.T@self.A@self.M
+        
 class twoPathGeneric(Network):
     # ae is length 3 list or array
     # This network:
