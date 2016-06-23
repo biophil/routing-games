@@ -5,11 +5,12 @@ Created on Thu Jun 23 08:57:29 2016
 @author: Philip
 """
 
-from numpy import array, diag, zeros, ones
+from numpy import array, diag, zeros, ones, reshape
 from numpy.linalg import solve
 
 class Network:
     
+    r = 1
     
     def __init__(self,A,b):
         # A is list-of-list or nxn array
@@ -20,12 +21,13 @@ class Network:
         self.populate()
         
     def populate(self):
+        self.b = reshape(self.b,[-1,1])
         self.n = self.b.size
         n = self.n
         self.X = zeros([n,n])
         for i in range(n-1):
             self.X[i,i:i+2] = [1,-1]
-        self.Q = diag(-self.X@self.b)
+        self.Q = diag(reshape(-self.X@self.b,[-1]))
         self.Q = self.Q[:,0:-1]
         self.simplexCon = zeros([n,n])
         self.simplexCon[-1,:] = ones([1,n])
@@ -34,6 +36,21 @@ class Network:
         en[-1,0]=1
         self.R = solve(self.P,en)
         self.M = solve(self.P,self.Q)
+        
+    def fz(self,z):
+        z = reshape(array(z),[-1,1])
+        return self.r*self.R+self.M@z
+        
+    def costs(self,f,gamma):
+        # f is column vector of path flows
+        # gamma is real number; corresponds to mc-toll multiplier
+        # outputs vector of path costs        
+        return (1+gamma)*self.A@f+self.b
+        
+    def Lz(self,z):
+        z = reshape(array(z),[-1,1])
+        f = self.fz(z)
+        return f.T@(self.A@f+self.b)
         
 class twoPathGeneric(Network):
     # ae is length 3 list or array
