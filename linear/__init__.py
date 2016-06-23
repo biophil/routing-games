@@ -1,3 +1,3 @@
 #
 
-from .network import Network
+from .network import Network, twoPathGeneric, threePathGeneric, fourPathGeneric1

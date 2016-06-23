@@ -8,14 +8,18 @@ Created on Thu Jun 23 08:57:29 2016
 from numpy import array, diag, zeros, ones
 from numpy.linalg import solve
 
-class Network():
+class Network:
     
     
     def __init__(self,A,b):
         # A is list-of-list or nxn array
         # b is list or array
+        # initializes R and M via standard construction
         self.A = array(A)
         self.b = array(b)
+        self.populate()
+        
+    def populate(self):
         self.n = self.b.size
         n = self.n
         self.X = zeros([n,n])
@@ -30,3 +34,85 @@ class Network():
         en[-1,0]=1
         self.R = solve(self.P,en)
         self.M = solve(self.P,self.Q)
+        
+class twoPathGeneric(Network):
+    # ae is length 3 list or array
+    # This network:
+    #     e3      e1
+    # 0-------0--------0
+    #         |        |
+    #         |   e2   |
+    #         |--------|
+    # constructs A for this network
+
+    def __init__(self,a,b):
+        # ae is length 3 list or array
+        # if len(b)=2, b is path-b's;
+        # if len(b)=3, b is edge-b's
+        self.A = diag(a[0:2])+a[2]*ones([2,2])
+        if len(b) == 2: # case when b corresponds to path b's
+            self.b = array(b)
+        else :  # b corresponds to edge b's
+            self.b = array([b[0:2]])+b[2]*ones(2)
+        self.populate()
+        
+class threePathGeneric(Network):
+    # This network: (different numbers from 6/17/16 p.3, but same net)
+    #
+    #                  e1
+    #         | ----------------|
+    #         |                 |
+    #    e4   |   e2       e5   |
+    # 0-------0--------0--------0
+    # |                |
+    # |      e3        |
+    # |----------------|
+
+    def __init__(self,a,b):
+        # ae is length 5 list or array
+        # if len(b)=3, b is path-b's;
+        # if len(b)=5, b is edge-b's
+        m12 = zeros([3,3])
+        m12[0:2,0:2] = ones([2,2])
+        m23 = zeros([3,3])
+        m23[1:3,1:3] = ones([2,2])
+        self.A = diag(a[0:3])+a[3]*m12+a[4]*m23
+        if len(b) == 3: # case when b corresponds to path b's
+            self.b = array(b)
+        else :  # b corresponds to edge b's
+            self.b = array(b[0:3])+b[3]*m12[:0],+b[4]*m23[:1]
+        self.populate()
+        
+class fourPathGeneric1(Network):
+    # This network: (different numbers from 6/17/16 p.6, but same net)
+    #
+    #                  e1
+    #         | --------------------------------|
+    #         |                e2               |
+    #         |        |---------------|        |
+    #    e5   |   e6   |   e3      e7  |   e8   |
+    # 0-------0--------0-------0-------0--------0
+    # |                        |
+    # |      e4                |
+    # |------------------------|
+
+    def __init__(self,a,b):
+        # ae is length 5 list or array
+        # if len(b)=4, b is path-b's;
+        # if len(b)=8, b is edge-b's
+        Ae5 = zeros([4,4])
+        Ae5[0:3,0:3] = ones([3,3])
+        Ae6 = zeros([4,4])
+        Ae6[1:3,1:3] = ones([2,2])
+        Ae7 = zeros([4,4])
+        Ae7[2:4,2:4] = ones([2,2])
+        Ae8 = zeros([4,4])
+        Ae8[1:4,1:4] = ones([3,3])
+        self.A = diag(a[0:4])+a[4]*Ae5+a[5]*Ae6+a[6]*Ae7+a[7]*Ae8
+        if len(b) == 4: # case when b corresponds to path b's
+            self.b = array(b)
+        else :  # b corresponds to edge b's
+            self.b = array(b[0:4])+b[4]*Ae5[:,0]+b[5]*Ae6[:,1]+b[6]*Ae7[:,2]+b[7]*Ae8[:,3]
+        self.populate()
+        
+        
