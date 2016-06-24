@@ -122,6 +122,8 @@ class fourPathGeneric1(Network):
         # ae is length 5 list or array
         # if len(b)=4, b is path-b's;
         # if len(b)=8, b is edge-b's
+        # note: permute is confusing, but to see path labels on above diagram,
+        # just execute reshape(permute[permute]+1,[4,1])
         Ae5 = zeros([4,4])
         Ae5[0:3,0:3] = ones([3,3])
         Ae6 = zeros([4,4])
