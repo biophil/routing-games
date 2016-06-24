@@ -88,7 +88,7 @@ class threePathGeneric(Network):
     # |      e3        |
     # |----------------|
 
-    def __init__(self,a,b):
+    def __init__(self,a,b,permute=[0,1,2]):
         # ae is length 5 list or array
         # if len(b)=3, b is path-b's;
         # if len(b)=5, b is edge-b's
@@ -97,10 +97,12 @@ class threePathGeneric(Network):
         m23 = zeros([3,3])
         m23[1:3,1:3] = ones([2,2])
         self.A = diag(a[0:3])+a[3]*m12+a[4]*m23
+        self.A = self.A[permute,:][:,permute]
         if len(b) == 3: # case when b corresponds to path b's
             self.b = array(b)
         else :  # b corresponds to edge b's
             self.b = array(b[0:3])+b[3]*m12[:0],+b[4]*m23[:1]
+            self.b = self.b[permute]
         self.populate()
         
 class fourPathGeneric1(Network):
@@ -116,7 +118,7 @@ class fourPathGeneric1(Network):
     # |      e4                |
     # |------------------------|
 
-    def __init__(self,a,b):
+    def __init__(self,a,b,permute=[0,1,2,3]):
         # ae is length 5 list or array
         # if len(b)=4, b is path-b's;
         # if len(b)=8, b is edge-b's
@@ -129,10 +131,12 @@ class fourPathGeneric1(Network):
         Ae8 = zeros([4,4])
         Ae8[1:4,1:4] = ones([3,3])
         self.A = diag(a[0:4])+a[4]*Ae5+a[5]*Ae6+a[6]*Ae7+a[7]*Ae8
+        self.A = self.A[permute,:][:,permute]
         if len(b) == 4: # case when b corresponds to path b's
             self.b = array(b)
         else :  # b corresponds to edge b's
             self.b = array(b[0:4])+b[4]*Ae5[:,0]+b[5]*Ae6[:,1]+b[6]*Ae7[:,2]+b[7]*Ae8[:,3]
+            self.b = self.b[permute]
         self.populate()
         
         
