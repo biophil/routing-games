@@ -9,7 +9,7 @@ from linear import fourPathGeneric1
 import numpy.random
 from numpy import array, reshape
 
-numIter = 100
+numIter = 1
 badNets = []
 z23 = reshape(array([0,1,1]),[1,3])
 z3 = reshape(array([0,0,1]),[1,3])
@@ -29,3 +29,4 @@ for i in range(numIter):
     except Exception as err:
         badNets.append({'a': a, 'net':None, 'err':err, 'permute':permute})
     
+XAXT = testNet.Y@testNet.A@testNet.Y.T 

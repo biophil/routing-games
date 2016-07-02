@@ -27,6 +27,7 @@ class Network:
         self.X = zeros([n,n])
         for i in range(n-1):
             self.X[i,i:i+2] = [1,-1]
+        self.Y = self.X[0:-1,:]
         self.Q = diag(reshape(-self.X@self.b,[-1]))
         self.Q = self.Q[:,0:-1]
         self.simplexCon = zeros([n,n])
