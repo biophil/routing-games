@@ -6,7 +6,7 @@ Created on Thu Jun 23 08:57:29 2016
 """
 
 from numpy import array, diag, zeros, ones, reshape
-from numpy.linalg import solve
+from numpy.linalg import solve, LinAlgError
 
 class Network:
     
@@ -35,8 +35,11 @@ class Network:
         self.P = self.X@self.A+self.simplexCon
         en = zeros([n,1])
         en[-1,0]=1
-        self.R = solve(self.P,en)
-        self.M = solve(self.P,self.Q)
+        try:
+            self.R = solve(self.P,en)
+            self.M = solve(self.P,self.Q)
+        except LinAlgError :
+            print('R and M not set, because you have a singular matrix')
         
     def fz(self,z):
         z = reshape(array(z),[-1,1])
