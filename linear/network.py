@@ -40,6 +40,8 @@ class Network:
             self.M = solve(self.P,self.Q)
         except LinAlgError :
             print('R and M not set, because you have a singular matrix')
+            self.R = None
+            self.M = None
         
     def fz(self,z):
         z = reshape(array(z),[-1,1])
