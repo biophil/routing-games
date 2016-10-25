@@ -2,6 +2,7 @@ import numpy as np
 import numpy.linalg as npla
 import scipy.linalg as spla
 import gradient
+import general.Game as gm
 
 A = np.array([[2,0,0],[0,1,0],[0,0,0]])
 b = np.array([[0,1,2]]).T
@@ -18,3 +19,18 @@ DFSymm = Gam@PTAP+PTAP@Gam
 xitest = np.array([range(0,9)]).T
 
 #f = gradient.safeStep([0,1,1],[2,1,.5],1)
+
+
+e1 = gm.Edge(lambda x:x,name='e1')
+e1.setToll(lambda x:x)
+e2 = gm.Edge(lambda x:1,name='e2')
+p1 = gm.Path(e1)
+p2 = gm.Path(e2)
+edges = (e1,e2)
+paths = (p1,p2)
+pop1 = gm.Population(paths,mass=0.5,sensitivity=0)
+pop2 = gm.Population(paths,mass=0.5,sensitivity=1)
+populations = (pop1,pop2)
+Pigou = gm.Game(edges,paths,populations)
+
+#Pigou.learn(maxit=1)
