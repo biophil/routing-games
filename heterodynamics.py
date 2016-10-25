@@ -17,4 +17,4 @@ DFSymm = Gam@PTAP+PTAP@Gam
 
 xitest = np.array([range(0,9)]).T
 
-f = gradient.safeStep([0,1,1],[2,1,.5],1)
+#f = gradient.safeStep([0,1,1],[2,1,.5],1)
