@@ -155,6 +155,7 @@ class Game :
         return self._aggState
         
     # I THINK THIS IS THE PROBLEM: I'M STORING ALL THE STUFF IN DICTS, AND WHEN I PULL VALUES() OUT IT RE-ORDERS THEM
+    # THAT'S PROBABLY NOT THE PROBLEM. I DON'T KNOW WHAT ELSE IS GOING ON, BUT SOMETHING ISN'T RIGHT. 
     def learn(self,stepsize=0.01,reltol=1e-6,maxit=100,verbose=True) :
         numit = 0
         while True :
@@ -166,10 +167,12 @@ class Game :
                     popCosts = pop.getCurrentCosts(update=True)
                     popCostsList = list(popCosts.values())
                     print(pop.name)
-                    print('pop flow: ' + str(popflowList))
-                    print('pop cost: ' + str(popCostsList))
+                    dispFlow = [(key.getName(),value) for key,value in popflow.items()]
+                    dispCost = [(key.getName(),value) for key,value in popCosts.items()]
+                    print('pop flow: ' + str(dispFlow))
+                    print('pop cost: ' + str(dispCost))
                     nextFlow = gradient.safeStep(popflowList,popCostsList,stepsize)
-                    nextFlow = np.reshape(nextFlow,[len(popflowList)])
+                    nextFlow = np.reshape(nextFlow,len(popflowList))
                     print(nextFlow)
                     # compute norm difference here:
                     diff = np.reshape(popflowList,[len(popflowList)])-nextFlow
@@ -178,6 +181,7 @@ class Game :
                 if tol<reltol :
                     print('Min tolerance achieved; hopefully it worked. tol = ' + str(tol))
                     break
+                print("aggregate state: " + str(self.getAggregateState(update=True)))
             else :
                 print('Max iterations exceeded; sorry dude.')
                 break

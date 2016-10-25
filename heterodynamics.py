@@ -33,4 +33,4 @@ pop2 = gm.Population(paths,mass=0.5,sensitivity=1,name='pop2')
 populations = (pop1,pop2)
 Pigou = gm.Game(edges,paths,populations)
 
-Pigou.learn(maxit=1)
+Pigou.learn(maxit=1000)
