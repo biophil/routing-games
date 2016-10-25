@@ -70,12 +70,13 @@ class Path :
 
 class Population :
     
-    def __init__(self,paths,mass=1,sensitivity=1):
+    def __init__(self,paths,mass=1,sensitivity=1,name=''):
         self.paths = paths
         self.sensitivity = sensitivity
         self.mass = mass
         self._state = None
         self.numPaths = len(self.paths)
+        self.name=name
         
     def initState(self) :
         self._state = {}
@@ -153,6 +154,7 @@ class Game :
             pop._setAggState(self._aggState)
         return self._aggState
         
+    # I THINK THIS IS THE PROBLEM: I'M STORING ALL THE STUFF IN DICTS, AND WHEN I PULL VALUES() OUT IT RE-ORDERS THEM
     def learn(self,stepsize=0.01,reltol=1e-6,maxit=100,verbose=True) :
         numit = 0
         while True :
@@ -163,8 +165,9 @@ class Game :
                     popflowList = list(popflow.values())
                     popCosts = pop.getCurrentCosts(update=True)
                     popCostsList = list(popCosts.values())
-                    print(popflowList)
-                    print(popCostsList)
+                    print(pop.name)
+                    print('pop flow: ' + str(popflowList))
+                    print('pop cost: ' + str(popCostsList))
                     nextFlow = gradient.safeStep(popflowList,popCostsList,stepsize)
                     nextFlow = np.reshape(nextFlow,[len(popflowList)])
                     print(nextFlow)
@@ -177,5 +180,6 @@ class Game :
                     break
             else :
                 print('Max iterations exceeded; sorry dude.')
+                break
             numit += 1
         print(self.getPopState())
