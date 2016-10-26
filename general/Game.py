@@ -88,8 +88,8 @@ class Population :
         return self._state
         
     def setState(self,newState) :
-        for idx,path in enumerate(self.paths) :
-            self._state[path] = newState[idx]
+        for flow,path in zip(newState,self.paths) :
+            self._state[path] = flow
             
     def _setAggState(self,aggState) :
         self._aggState = aggState
@@ -162,6 +162,7 @@ class Game :
             tol = -1
             if numit<=maxit :
                 for pop in self.populations :
+                    self._setAggregateState()
                     popflow = pop.getState()
                     popflowList = list(popflow.values())
                     popCosts = pop.getCurrentCosts(update=True)
