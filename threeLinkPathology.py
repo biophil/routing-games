@@ -26,3 +26,5 @@ pop1 = gm.Population([p1,p2],mass=0.5,sensitivity=1,name='upperPop')
 pop2 = gm.Population([p2,p3],mass=1,sensitivity=0,name='lowerPop')
 ThreeLink = gm.Game([e1,e2,e3],[p1,p2,p3],[pop1,pop2])
 
+ThreeLink.populations[0].setState([0,.5])
+ThreeLink.populations[1].setState([0,1])

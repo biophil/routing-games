@@ -8,7 +8,7 @@ Created on Tue Oct 25 11:14:27 2016
 import gradient
 import numpy as np
 import numpy.linalg as npla
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 class Edge :
     
@@ -83,7 +83,7 @@ class Population :
         self.name=name
         
     def initState(self) :
-        self._state = {}
+        self._state = OrderedDict()
         for path in self.paths :
             self._state[path] = 0
         self._state[self.paths[0]] = self.mass # put all flow on arbitrary path
@@ -106,7 +106,7 @@ class Population :
         return self._aggState
     
     def _setCurrentCosts(self,game) :
-        currentCosts = {}
+        currentCosts = OrderedDict()
         aggFlowOnEdges = game.getFlowOnEdges()
         for path in self.paths :
             currentCosts[path] = path.cost(aggFlowOnEdges,self.sensitivity)
@@ -130,13 +130,13 @@ class Game :
         self.totalMass = sum([pop.mass for pop in self.populations])
         
         if populationState is None : # initialize to something meaningless
-            self._popState = {}
+            self._popState = OrderedDict()
             for pop in self.populations :
                 pop.initState()
                 self._popState[pop] = pop.getState()
         else :
             self._popState = populationState
-        self._aggState = {}
+        self._aggState = OrderedDict()
         self._setAggregateState()
         for pop in self.populations :
             pop._setCurrentCosts(self)
@@ -173,7 +173,7 @@ class Game :
         
     # I THINK THIS IS THE PROBLEM: I'M STORING ALL THE STUFF IN DICTS, AND WHEN I PULL VALUES() OUT IT RE-ORDERS THEM
     # THAT'S PROBABLY NOT THE PROBLEM. I DON'T KNOW WHAT ELSE IS GOING ON, BUT SOMETHING ISN'T RIGHT. 
-    def learn(self,stepsize=0.01,reltol=1e-6,maxit=100,verbose=True) :
+    def learn(self,stepsize=0.1,reltol=1e-6,maxit=100,verbose=True) :
         numit = 0
         while True :
             tol = -1
