@@ -167,24 +167,26 @@ class Game :
                     popflowList = list(popflow.values())
                     popCosts = pop.getCurrentCosts(update=True)
                     popCostsList = list(popCosts.values())
-                    print(pop.name)
+                    print('\n'+pop.name)
                     dispFlow = [(key.getName(),value) for key,value in popflow.items()]
                     dispCost = [(key.getName(),value) for key,value in popCosts.items()]
                     print('pop flow: ' + str(dispFlow))
                     print('pop cost: ' + str(dispCost))
                     nextFlow = gradient.safeStep(popflowList,popCostsList,stepsize)
                     nextFlow = np.reshape(nextFlow,len(popflowList))
-                    print(nextFlow)
+#                    print(nextFlow)
                     # compute norm difference here:
                     diff = np.reshape(popflowList,[len(popflowList)])-nextFlow
                     tol = max([tol,abs(npla.norm(diff))])
                     pop.setState(nextFlow)
                 if tol<reltol :
                     print('Min tolerance achieved; hopefully it worked. tol = ' + str(tol))
+                    print('Number of iterations: ' + str(numit))
                     break
-                print("aggregate state: " + str(self.getAggregateState(update=True)))
+#                print("aggregate state: " + str(self.getAggregateState(update=True)))
             else :
                 print('Max iterations exceeded; sorry dude.')
+                print('Number of iterations: ' + str(numit))
                 break
             numit += 1
         print(self.getPopState())
