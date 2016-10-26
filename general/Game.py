@@ -8,6 +8,7 @@ Created on Tue Oct 25 11:14:27 2016
 import gradient
 import numpy as np
 import numpy.linalg as npla
+from collections import defaultdict
 
 class Edge :
     
@@ -45,10 +46,13 @@ class Path :
         self.edges = edges
         self._name = name
         
-    def cost(self,flow,sensitivity=1) :
+    def cost(self,flowOnEdges,sensitivity=1) :
         cost = 0
         for edge in self.edges :
-            cost += edge.cost(flow,sensitivity)
+            if edge in flowOnEdges :
+                cost += edge.cost(flowOnEdges[edge],sensitivity)
+            else :
+                cost += edge.cost(0,sensitivity)
         return cost
         
     def latency(self,flow) :
@@ -87,27 +91,31 @@ class Population :
     def getState(self) :
         return self._state
         
+    def printState(self) :
+        for path in self._state :
+            print(path.getName() + ': ' + str(self._state[path]))
+        
     def setState(self,newState) :
         for flow,path in zip(newState,self.paths) :
             self._state[path] = flow
             
-    def _setAggState(self,aggState) :
+    def _setAggState(self,aggState) : # this is a little bit dumb storing the whole aggState in each pop
         self._aggState = aggState
         
     def getAggState(self) :
         return self._aggState
     
-    def _setCurrentCosts(self) :
+    def _setCurrentCosts(self,game) :
         currentCosts = {}
-        aggState = self.getAggState()
+        aggFlowOnEdges = game.getFlowOnEdges()
         for path in self.paths :
-            currentCosts[path] = path.cost(aggState[path],self.sensitivity)
+            currentCosts[path] = path.cost(aggFlowOnEdges,self.sensitivity)
         self._currentCosts = currentCosts
         return self._currentCosts
         
-    def getCurrentCosts(self,update=False) :
+    def getCurrentCosts(self,game,update=False) :
         if update :
-            return self._setCurrentCosts()
+            return self._setCurrentCosts(game)
         else :
             return self._currentCosts
 
@@ -131,7 +139,7 @@ class Game :
         self._aggState = {}
         self._setAggregateState()
         for pop in self.populations :
-            pop._setCurrentCosts()
+            pop._setCurrentCosts(self)
         
     def getPopState(self) :
         return self._popState
@@ -154,6 +162,15 @@ class Game :
             pop._setAggState(self._aggState)
         return self._aggState
         
+    def getFlowOnEdges(self) :
+        # takes aggregate state and returns dict of edge:flow key:value pairs
+#        aggState = self._aggState
+        flowOnEdges = defaultdict(float)
+        for path in self._aggState :
+            for edge in path.edges :
+                flowOnEdges[edge] += self._aggState[path]
+        return flowOnEdges
+        
     # I THINK THIS IS THE PROBLEM: I'M STORING ALL THE STUFF IN DICTS, AND WHEN I PULL VALUES() OUT IT RE-ORDERS THEM
     # THAT'S PROBABLY NOT THE PROBLEM. I DON'T KNOW WHAT ELSE IS GOING ON, BUT SOMETHING ISN'T RIGHT. 
     def learn(self,stepsize=0.01,reltol=1e-6,maxit=100,verbose=True) :
@@ -165,7 +182,7 @@ class Game :
                     self._setAggregateState()
                     popflow = pop.getState()
                     popflowList = list(popflow.values())
-                    popCosts = pop.getCurrentCosts(update=True)
+                    popCosts = pop.getCurrentCosts(self,update=True)
                     popCostsList = list(popCosts.values())
                     print('\n'+pop.name)
                     dispFlow = [(key.getName(),value) for key,value in popflow.items()]
@@ -174,7 +191,7 @@ class Game :
                     print('pop cost: ' + str(dispCost))
                     nextFlow = gradient.safeStep(popflowList,popCostsList,stepsize)
                     nextFlow = np.reshape(nextFlow,len(popflowList))
-#                    print(nextFlow)
+                    print('next flow: ' + str(nextFlow))
                     # compute norm difference here:
                     diff = np.reshape(popflowList,[len(popflowList)])-nextFlow
                     tol = max([tol,abs(npla.norm(diff))])
@@ -189,4 +206,4 @@ class Game :
                 print('Number of iterations: ' + str(numit))
                 break
             numit += 1
-        print(self.getPopState())
+        print(self.getAggregateState())

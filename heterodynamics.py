@@ -21,8 +21,8 @@ xitest = np.array([range(0,9)]).T
 #f = gradient.safeStep([0,1,1],[2,1,.5],1)
 
 
-e1 = gm.Edge(lambda x:x,name='e1')
-e1.setToll(lambda x:x)
+e1 = gm.Edge(lambda x:x**2,name='e1')
+e1.setToll(lambda x:2*x**2)
 e2 = gm.Edge(lambda x:1,name='e2')
 p1 = gm.Path(e1,name='p1')
 p2 = gm.Path(e2,name='p2')
@@ -33,4 +33,6 @@ pop2 = gm.Population(paths,mass=0.5,sensitivity=1,name='pop2')
 populations = (pop1,pop2)
 Pigou = gm.Game(edges,paths,populations)
 
-Pigou.learn(maxit=1000)
+
+
+#Pigou.learn(maxit=1000)
