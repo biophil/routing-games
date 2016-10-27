@@ -15,6 +15,18 @@ def gradient(payoffs) :
     Phi = np.eye(n)-1/n*np.ones([n,n]) # project into tangent space
     payoffs = np.reshape(payoffs,[n,1])
     return np.reshape(-Phi@payoffs,n)
+
+def gradientSelect(payoffs,badIndices) :
+    n = len(payoffs)
+    k = len(badIndices)
+    Phi = np.eye(n)-1/(n-k)*np.ones([n,n])
+    for badIdx in badIndices :
+        Phi[badIdx,:] = np.zeros(n)
+        Phi[:,badIdx] = np.zeros(n)
+#        Phi[badIdx,badIdx] = 1
+    payoffs = np.reshape(payoffs,[n,1])
+    return np.reshape(-Phi@payoffs,n)
+
     
 def getNonZeroIndices(flow) :
     return [i for i,f in enumerate(flow) if f > ZERO]
