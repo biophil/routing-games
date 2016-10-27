@@ -10,6 +10,7 @@ Created on Wed Oct 26 13:27:42 2016
 #import scipy.linalg as spla
 #import gradient
 import general.Game as gm
+from gradient import gradientSelect
 
 
 # initializes my 3-link asymmetric pathology
@@ -28,3 +29,7 @@ ThreeLink = gm.Game([e1,e2,e3],[p1,p2,p3],[pop1,pop2])
 
 ThreeLink.populations[0].setState([0,.5])
 ThreeLink.populations[1].setState([0,1])
+
+
+    
+gradientSelect([4,3,3,2],[1,2,3])

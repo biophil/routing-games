@@ -6,6 +6,7 @@ Created on Wed Oct 26 15:32:56 2016
 """
 
 import general.Game as gm
+import matplotlib.pyplot as plt
 
 
 # initializes my augmented Braess pathology
@@ -30,4 +31,5 @@ AugBraess = gm.Game([e1,e2,e3,e4,e5,e6],paths,[pop1,pop2])
 AugBraess.populations[0].setState([0,1,0,0])
 AugBraess.populations[1].setState([0,0,1,0])
 
-AugBraess.learn()
+#AugBraess.learn()
+

@@ -162,9 +162,12 @@ class Game :
             pop._setAggState(self._aggState)
         return self._aggState
         
-    def getFlowOnEdges(self) :
+        
+    def getFlowOnEdges(self,update=False) :
         # takes aggregate state and returns dict of edge:flow key:value pairs
 #        aggState = self._aggState
+        if update :
+            self._setAggregateState()
         flowOnEdges = defaultdict(float)
         for path in self._aggState :
             for edge in path.edges :
@@ -174,10 +177,17 @@ class Game :
                 flowOnEdges[edge] += self._aggState[path]
         return flowOnEdges
         
-    # I THINK THIS IS THE PROBLEM: I'M STORING ALL THE STUFF IN DICTS, AND WHEN I PULL VALUES() OUT IT RE-ORDERS THEM
-    # THAT'S PROBABLY NOT THE PROBLEM. I DON'T KNOW WHAT ELSE IS GOING ON, BUT SOMETHING ISN'T RIGHT. 
+    def getTotalLatency(self,update=True) :
+        flowOnEdges = self.getFlowOnEdges(update)
+        totLat = 0.
+        for edge in flowOnEdges :
+            flow = flowOnEdges[edge]
+            totLat += flow * edge.latency(flow)
+        return totLat
+        
     def learn(self,stepsize=0.1,reltol=1e-6,maxit=100,verbose=True) :
         numit = 0
+        totLat = []
         while True :
             tol = -1
             if numit<=maxit :
@@ -208,5 +218,7 @@ class Game :
                 print('Max iterations exceeded; sorry dude.')
                 print('Number of iterations: ' + str(numit))
                 break
+            totLat.append((numit,self.getTotalLatency()))
             numit += 1
         print(self.getAggregateState())
+        return totLat
