@@ -26,6 +26,24 @@ def getAcceptableIndices(flow,grad) :
     # get indices where either flow or gradient are nonnegative
     return [i for i,j in enumerate(zip(flow,grad)) if j[0]>ZERO or j[1]>=0] 
     
+def pareDownPayoffs(flow,payoffs) :
+    # program: loop over this:
+    # 1. compute gradient
+    # 2. run getAcceptableIndices()
+    # 3. try again?
+    localPayoffs = np.array(payoffs)
+    localFlow = np.array(flow)
+    done = False
+    goodIndices = np.array(range(0,len(flow))) # start by assuming all are good
+    while not done :
+        grad = gradient(localPayoffs)
+        newGoodIndices = getAcceptableIndices(localFlow,grad) # these are the new candidate good ones
+        if len(goodIndices) == len(newGoodIndices) :
+            break # didn't change, we're good to go
+        # well, here's the thing: it might make more sense to pass
+        # the "good indices" to gradient(). that way we do everything
+        # more-or-less in place. Should be cleaner.
+    return goodIndices
     
 def safeStep(flow,payoffs,stepsize) :
     n = len(payoffs)
