@@ -168,6 +168,9 @@ class Game :
         flowOnEdges = defaultdict(float)
         for path in self._aggState :
             for edge in path.edges :
+#                print(self._aggState)
+#                print(path.edges)
+#                print(edge)
                 flowOnEdges[edge] += self._aggState[path]
         return flowOnEdges
         
