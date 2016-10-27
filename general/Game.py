@@ -218,7 +218,46 @@ class Game :
                 print('Max iterations exceeded; sorry dude.')
                 print('Number of iterations: ' + str(numit))
                 break
-            totLat.append((numit,self.getTotalLatency()))
+            totLat.append(self.getTotalLatency())
             numit += 1
         print(self.getAggregateState())
         return totLat
+        
+        
+class ParallelNetwork(Game) :
+    
+    def __init__(self,latencies,tolls,demands,sensitivities,pathSets) :
+        # for N edges and K populations
+        # latencies: length-N iterable of lambdas of latency functions 
+        # tolls: length-N iterable of lambdas of tolling functions 
+        # demands: length-K iterable of r_k demand masses
+        # sensitivities: length-K iterable of s_k sensitivity values
+        # pathSets: length-K iterable of lists of accessible paths for each pop
+        edges = []
+        paths = []
+        pops = []
+        for idx,(latency,toll) in enumerate(zip(latencies,tolls)) :
+            ename = 'e' + str(idx+1)
+            pname = 'p' + str(idx+1)
+            edge = Edge(latency,toll,ename)
+            edges.append(edge)
+            paths.append(Path(edge,name=pname))
+        for idx,(demand,sensitivity,pathIndices) in enumerate(zip(demands,sensitivities,pathSets)) :
+            popname = 'pop' + str(idx+1)
+            pathList = []
+            for idx in pathIndices :
+                pathList.append(paths[idx])
+            pops.append(Population(pathList,demand,sensitivity,popname))
+        super().__init__(edges,paths,pops)
+        
+class SymmetricParallelNetwork(ParallelNetwork) :
+    
+    def __init__(self,latencies,tolls,demands,sensitivities) :
+        pathSet = list(range(0,len(latencies)))
+        pathSets = [pathSet]*len(demands)
+        super().__init__(latencies,tolls,demands,sensitivities,pathSets)
+        
+#class FarokhiGame(Game) :
+#    
+#    def __init__(self,edgeList,latencies,tolls,demandList,sensitivityList) :
+        
