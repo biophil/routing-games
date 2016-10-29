@@ -17,7 +17,7 @@ class Edge :
         # toll is either None or a lambda of tolling function
         self._latency = latency
         self._toll = toll
-        self._name = name
+        self.name = name
         
     def cost(self,flow,sensitivity=1) :
         return self._latency(flow) + sensitivity*self._toll(flow)
@@ -38,13 +38,13 @@ class Edge :
         self._name = name
         
     def getName(self) :
-        return self._name
+        return self.name
         
 class Path :
     
-    def __init__(self,*edges,name='') :
+    def __init__(self,edges,name='') :
         self.edges = edges
-        self._name = name
+        self.name = name
         
     def cost(self,flowOnEdges,sensitivity=1) :
         cost = 0
@@ -65,7 +65,7 @@ class Path :
         self._name = name
         
     def getName(self) :
-        return self._name
+        return self.name
         
 #    def updatePopState(self,pop) :
 #        self._popState[pop] = pop.
@@ -223,6 +223,14 @@ class Game :
         print(self.getAggregateState())
         return totLat
         
+    def printGame(self) :
+        for pop in self.populations :
+            print("\nPopulation " + pop.name + ":")
+            for path in pop.paths :
+                line = "path " + path.name + ", comprising edges "
+                line += ' '.join(edge.name for edge in path.edges)
+                print(line)
+        
         
 class ParallelNetwork(Game) :
     
@@ -241,7 +249,7 @@ class ParallelNetwork(Game) :
             pname = 'p' + str(idx+1)
             edge = Edge(latency,toll,ename)
             edges.append(edge)
-            paths.append(Path(edge,name=pname))
+            paths.append(Path([edge],name=pname))
         for idx,(demand,sensitivity,pathIndices) in enumerate(zip(demands,sensitivities,pathSets)) :
             popname = 'pop' + str(idx+1)
             pathList = []
@@ -257,7 +265,62 @@ class SymmetricParallelNetwork(ParallelNetwork) :
         pathSets = [pathSet]*len(demands)
         super().__init__(latencies,tolls,demands,sensitivities,pathSets)
         
-#class FarokhiGame(Game) :
-#    
-#    def __init__(self,edgeList,latencies,tolls,demandList,sensitivityList) :
+class FarokhiGame(Game) :
+    
+    def __init__(self,edgeList,latencies,tolls,demandList,sensitivityList) :
+        # CONVENTION: edgeList is 1-indexed
+        edgeSet = set(edgeList)
+        PotentialPaths = OrderedDict()
+        PotentialPaths['pop1'] = []
+        PotentialPaths['pop1'].append(set([1]))
+        PotentialPaths['pop1'].append(set([2,3,4]))
+        PotentialPaths['pop1'].append(set([2,7,8]))
         
+        PotentialPaths['pop2'] = []
+        PotentialPaths['pop2'].append(set([1,5,13]))
+        PotentialPaths['pop2'].append(set([2,3,4,5,13]))
+        PotentialPaths['pop2'].append(set([2,7,8,5,13]))
+        PotentialPaths['pop2'].append(set([2,3,9,13]))
+        PotentialPaths['pop2'].append(set([2,7,10,13]))
+        
+        PotentialPaths['pop3'] = []
+        PotentialPaths['pop3'].append(set([11,6,3,4,5]))
+        PotentialPaths['pop3'].append(set([11,6,3,9]))
+        PotentialPaths['pop3'].append(set([11,6,7,8,5]))
+        PotentialPaths['pop3'].append(set([11,6,7,10]))
+        PotentialPaths['pop3'].append(set([11,12]))
+        
+        RealizedPaths = OrderedDict()
+        for pop in PotentialPaths :
+            RealizedPaths[pop] = [i for i in PotentialPaths[pop] if i <= edgeSet]
+        
+        # check if network is feasible
+        tracker = 0
+        for pop in RealizedPaths : 
+            if len(RealizedPaths[pop]) == 0 :
+                msg = "Population " + pop + " has no paths. Problem infeasible."
+                raise NetworkDefinitionError(msg)
+            else :
+                tracker += len(RealizedPaths[pop])
+        if tracker < 4:
+            raise NetworkDefinitionError("All populations have exactly 1 path. Problem trivial.")
+        edges = []
+        paths = []
+        pops = []
+        for edgeIdx,latency,toll in zip(edgeList,latencies,tolls) :
+            ename = 'e' + str(edgeIdx)
+            edge = Edge(latency,toll,ename)
+            edges.append(edge)
+        for popName,demand,sens in zip(RealizedPaths,demandList,sensitivityList) :
+            thesePaths = []
+            for path in RealizedPaths[popName] :
+                theseEdges = [edge for idx,edge in enumerate(edges) if edgeList[idx] in path] 
+                pname = ''.join(edge.name for edge in theseEdges)
+                thesePaths.append(Path(theseEdges,pname))
+            pops.append(Population(thesePaths,demand,sens,popName))
+            paths = paths + thesePaths
+        super().__init__(edges,paths,pops)
+        
+class NetworkDefinitionError(Exception) :
+    def __init__(self,message) :
+        self.message = message
