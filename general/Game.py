@@ -267,7 +267,7 @@ class SymmetricParallelNetwork(ParallelNetwork) :
         
 class FarokhiGame(Game) :
     
-    def __init__(self,edgeList,latencies,tolls,demandList,sensitivityList) :
+    def __init__(self,edgeList,latencies,demandList,sensitivityList,tolls=None) :
         # CONVENTION: edgeList is 1-indexed
         edgeSet = set(edgeList)
         PotentialPaths = OrderedDict()
@@ -305,6 +305,8 @@ class FarokhiGame(Game) :
         if tracker < 4:
             raise NetworkDefinitionError("All populations have exactly 1 path. Problem trivial.")
         edges = []
+        if tolls is None :
+            tolls = [lambda x : 0]*len(edgeList)
         paths = []
         pops = []
         for edgeIdx,latency,toll in zip(edgeList,latencies,tolls) :

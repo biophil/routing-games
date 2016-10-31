@@ -31,6 +31,8 @@ tolls = [(lambda x:0)]
 tolls = tolls*13
 demands = [1,2,3]
 sensitivities = [0,.5,1]
-Gtest = gm.FarokhiGame(edgeList,latencies,tolls,demands,sensitivities)
+
+
+Gtest = gm.FarokhiGame(edgeList,latencies,demands,sensitivities)
 
 Gtest.printGame()
