@@ -95,6 +95,10 @@ class Population :
         for path in self._state :
             print(path.getName() + ': ' + str(self._state[path]))
         
+    def printCosts(self) :
+        for path in self._currentCosts :
+            print(path.getName() + ': ' + str(self._currentCosts[path]))
+        
     def setState(self,newState) :
         for flow,path in zip(newState,self.paths) :
             self._state[path] = flow
@@ -185,9 +189,24 @@ class Game :
             totLat += flow * edge.latency(flow)
         return totLat
         
-    def learn(self,stepsize=0.1,reltol=1e-6,maxit=100,verbose=True) :
+    def printAggStateCosts(self) :
+        self._setAggregateState()
+        for pop in self.populations :
+            print('')
+            print(pop.name)
+            for path in pop._currentCosts :
+                toprint = path.getName() + ' flow: ' + str(pop._currentCosts[path])
+                toprint += ',\t cost: ' + str(pop._state[path])
+                print(toprint)
+        
+    def learn(self,stepsize=0.1,reltol=1e-6,maxit=100,verbose=False) :
+        # codes:
+            # -1 = initialized
+            #  1 = algo seems to have converged
+            #  2 = max iter
         numit = 0
         totLat = []
+        code = -1
         while True :
             tol = -1
             if numit<=maxit :
@@ -197,14 +216,15 @@ class Game :
                     popflowList = list(popflow.values())
                     popCosts = pop.getCurrentCosts(self,update=True)
                     popCostsList = list(popCosts.values())
-                    print('\n'+pop.name)
                     dispFlow = [(key.getName(),value) for key,value in popflow.items()]
                     dispCost = [(key.getName(),value) for key,value in popCosts.items()]
-                    print('pop flow: ' + str(dispFlow))
-                    print('pop cost: ' + str(dispCost))
                     nextFlow = gradient.safeStep(popflowList,popCostsList,stepsize)
                     nextFlow = np.reshape(nextFlow,len(popflowList))
-                    print('next flow: ' + str(nextFlow))
+                    if verbose :
+                        print('\n'+pop.name)
+                        print('pop flow: ' + str(dispFlow))
+                        print('pop cost: ' + str(dispCost))
+                        print('next flow: ' + str(nextFlow))
                     # compute norm difference here:
                     diff = np.reshape(popflowList,[len(popflowList)])-nextFlow
                     tol = max([tol,abs(npla.norm(diff))])
@@ -212,16 +232,20 @@ class Game :
                 if tol<reltol :
                     print('Min tolerance achieved; hopefully it worked. tol = ' + str(tol))
                     print('Number of iterations: ' + str(numit))
+                    code = 1 # 
                     break
 #                print("aggregate state: " + str(self.getAggregateState(update=True)))
             else :
                 print('Max iterations exceeded; sorry dude.')
                 print('Number of iterations: ' + str(numit))
+                code = 2
                 break
             totLat.append(self.getTotalLatency())
             numit += 1
-        print(self.getAggregateState())
-        return totLat
+#        print(self.getAggregateState())
+        if verbose :
+            self.printAggStateCosts()
+        return totLat,code
         
     def printGame(self) :
         for pop in self.populations :
@@ -267,7 +291,7 @@ class SymmetricParallelNetwork(ParallelNetwork) :
         
 class FarokhiGame(Game) :
     
-    def __init__(self,edgeList,latencies,demandList,sensitivityList,tolls=None) :
+    def __init__(self,edgeList,latencies,demandList=[1,1,1],sensitivityList=[1,1,1],tolls=None) :
         # CONVENTION: edgeList is 1-indexed
         edgeSet = set(edgeList)
         PotentialPaths = OrderedDict()
