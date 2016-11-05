@@ -199,6 +199,13 @@ class Game :
                 toprint += ',\t cost: ' + str(pop._state[path])
                 print(toprint)
         
+    def setZeroSensitivities(self) :
+        self.setSensitivities([0]*len(self.populations))
+            
+    def setSensitivities(self,sensitivities) :
+        for pop,sens in zip(self.populations,sensitivities) :
+            pop.sensitivity = sens
+
     def learn(self,stepsize=0.1,reltol=1e-6,maxit=100,verbose=False) :
         # codes:
             # -1 = initialized
