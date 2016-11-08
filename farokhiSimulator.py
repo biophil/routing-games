@@ -5,7 +5,8 @@ Created on Mon Oct 31 14:52:03 2016
 
 @author: pnbrown
 """
-
+import dill
+import pickle
 import general.Game as gm
 from general.Game import NetworkDefinitionError
 import numpy.random as rnd
@@ -14,7 +15,7 @@ import matplotlib.pyplot as plt
 
 # NOTE: I am not currently being careful with random seeds
 rnd.seed(1)
-numNetworksToCheck = 1
+numNetworksToCheck = 10
 SL = 0.1
 SU = 100
 rL = 1/2
@@ -23,7 +24,7 @@ rH = 2
 KK = [0.5,1,2,5,10]
 
 printMasses = True
-printLearning = True
+printLearning = False
 printStep = True
 
 def randomLatencyDPR() :
@@ -60,22 +61,36 @@ def buildRandomNetworkDPR() :
         return None
       
 def learnIt(game,verb=False):
+#    r = game.totalMass
+#    
     LL,code = thisNet.learn(stepsize=0.01,maxit=1e3,verbose=verb) # this one seems to work often enough
     if code == 2 :
-        LL,code = thisNet.learn(stepsize=0.005,maxit=1e3,verbose=verb) # try it with a tiny stepsize
+        LL,code = thisNet.learn(stepsize=0.001,maxit=1e4,verbose=verb) # try it with a tiny stepsize
         if code == 2 :
-            LL,code = thisNet.learn(stepsize=min(massList)/2,maxit=1e3,verbose=verb) # try it with a huge stepsize
+            LL,code = thisNet.learn(stepsize=.0005,maxit=1e4,verbose=verb) # try it with a huge stepsize
     return LL,code
 
 itr = 0
 populationMasses = []
-#populationMasses = [[rL,rM,rH]]
-#populationMasses.append([rL,rL,rL])
-#populationMasses.append([rM,rM,rM])
-#populationMasses.append([rH,rH,rH])
+populationMasses.append([rL,rM,rH])
+populationMasses.append([rL,rL,rL])
+populationMasses.append([rM,rM,rM])
+populationMasses.append([rH,rH,rH])
 populationMasses.append([rH,rM,rL])
-#populationMasses.append([rH,rL,rM])
-#populationMasses.append([rL,rH,rM])
+populationMasses.append([rH,rL,rM])
+populationMasses.append([rL,rH,rM])
+
+
+senses = []
+senses.append([SL,SL,SL])
+senses.append([SL,SL,SU])
+senses.append([SL,SU,SL])
+senses.append([SL,SU,SU])
+senses.append([SU,SL,SL])
+senses.append([SU,SL,SU])
+senses.append([SU,SU,SL])
+senses.append([SU,SU,SU])
+
 record = []
 while itr < numNetworksToCheck :
     thisNet = buildRandomNetworkDPR()
@@ -88,6 +103,7 @@ while itr < numNetworksToCheck :
                 pop.mass = massList[idx]
 #                print(pop.mass)
                 pop.initState()
+            thisNet.totalMass = sum(massList)
             thisNet._setAggregateState()
             # first, need to find optimal flow for this population
             updateNetworkTollsDPR(thisNet,1,buildSMCDPR)
@@ -118,16 +134,21 @@ while itr < numNetworksToCheck :
                 else :
                     record[-1]['uninf converged'] = False
                 if record[-1]['uninf converged'] :
-                    record[-1]['PoA'] = [record[-1]['Luninf']/record[-1]['Lopt']]
-                    record[-1]['kk'] = [0]
-                    for kappa in KK :
-                        updateNetworkTollsDPR(thisNet,kappa,buildUniversalTollDPR)
-                        LLk, code = learnIt(thisNet,printLearning)
-                        if code == 1 :
-                            Lk = thisNet.getTotalLatency()
-                            # note: probably need to check if LLk is empty first
-                            record[-1]['PoA'].append(Lk/record[-1]['Lopt'])
-                            record[-1]['kk'].append(kappa)
+                    record[-1]['sensitivities'] = []
+                    for senseList in senses :
+                        thisNet.setSensitivities(senseList)
+                        record[-1]['sensitivities'].append({})
+                        record[-1]['sensitivities'][-1]['pop'] = senseList
+                        record[-1]['sensitivities'][-1]['PoA'] = [record[-1]['Luninf']/record[-1]['Lopt']]
+                        record[-1]['sensitivities'][-1]['kk'] = [0]
+                        for kappa in KK :
+                            updateNetworkTollsDPR(thisNet,kappa,buildUniversalTollDPR)
+                            LLk, code = learnIt(thisNet,printLearning)
+                            if code == 1 :
+                                Lk = thisNet.getTotalLatency()
+                                # note: probably need to check if LLk is empty first
+                                record[-1]['sensitivities'][-1]['PoA'].append(Lk/record[-1]['Lopt'])
+                                record[-1]['sensitivities'][-1]['kk'].append(kappa)
                         
 
 
@@ -142,6 +163,14 @@ def plotPoAs(rec) :
                     plt.plot(item['kk'],item['PoA'])
                 except KeyError :
                     pass
+                
+                
+
+def pickleit(topickle,fname) :
+    pickle.dump( topickle, open( fname, "wb" ) )
+    
+def unpickleit(fname) :
+    return pickle.load( open( fname, "rb" ) )
                             
 #plt.plot(record[-1]['kk'],record[-1]['PoA'])
 #plt.plot(record[-2]['kk'],record[-2]['PoA'])
