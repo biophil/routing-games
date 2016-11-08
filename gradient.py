@@ -93,15 +93,14 @@ def safeStep(flow,payoffs,stepsize) :
         return nextFlow
     else : # recurse thru with partial steps
 #            print(nextFlow)
-        badIdx, overshoot = min(enumerate(nextFlow), key=itemgetter(1))
-#            overshoot = overshoot
-#            print(badIdx)
-#            print(lastFlow)
-#            print(grad)
-        partialStep = -lastFlow[badIdx]/grad[badIdx] # amount of step that takes us to 0
-        remainingStep = stepsize - partialStep # still need to take this step
-        partialGradStep = grad*partialStep
-        nextFlow = partialGradStep + lastFlow # this takes us to zero
-#            print(badIdx,overshoot)
-#            print(partialGradStep,partialStep,grad)
+        remainingStep = stepsize
+        while True : # loop here until we've backed up every neg index
+            badIdx, overshoot = min(enumerate(nextFlow), key=itemgetter(1))
+            if overshoot > -ZERO :
+                break
+            partialStep = -lastFlow[badIdx]/grad[badIdx] # amount of step that takes us to 0
+            remainingStep = remainingStep - partialStep # still need to take this step
+            partialGradStep = grad*partialStep
+            nextFlow = partialGradStep + lastFlow # this takes us to zero
+            lastFlow = nextFlow[:]
         return safeStep(nextFlow,payoffs,remainingStep)
