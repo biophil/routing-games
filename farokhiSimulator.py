@@ -14,13 +14,17 @@ import matplotlib.pyplot as plt
 
 # NOTE: I am not currently being careful with random seeds
 rnd.seed(1)
-numNetworksToCheck = 4
+numNetworksToCheck = 1
 SL = 0.1
 SU = 100
 rL = 1/2
 rM = 1
 rH = 2
 KK = [0.5,1,2,5,10]
+
+printMasses = True
+printLearning = True
+printStep = True
 
 def randomLatencyDPR() :
     # needs to return a latency function of the form C + Af^4
@@ -55,25 +59,31 @@ def buildRandomNetworkDPR() :
         print('Invalid Network. Error: ' + str(er))
         return None
       
-def learnIt(game):
-    LL,code = thisNet.learn(stepsize=0.01,maxit=1e3,verbose=False) # this one seems to work often enough
+def learnIt(game,verb=False):
+    LL,code = thisNet.learn(stepsize=0.01,maxit=1e3,verbose=verb) # this one seems to work often enough
     if code == 2 :
-        LL,code = thisNet.learn(stepsize=0.001,maxit=1e3) # try it with a tiny stepsize
+        LL,code = thisNet.learn(stepsize=0.005,maxit=1e3,verbose=verb) # try it with a tiny stepsize
         if code == 2 :
-            LL,code = thisNet.learn(stepsize=min(massList)/2,maxit=1e3) # try it with a huge stepsize
+            LL,code = thisNet.learn(stepsize=min(massList)/2,maxit=1e3,verbose=verb) # try it with a huge stepsize
     return LL,code
 
 itr = 0
-populationMasses = [[rL,rM,rH]]
+populationMasses = []
+#populationMasses = [[rL,rM,rH]]
 #populationMasses.append([rL,rL,rL])
 #populationMasses.append([rM,rM,rM])
 #populationMasses.append([rH,rH,rH])
+populationMasses.append([rH,rM,rL])
+#populationMasses.append([rH,rL,rM])
+#populationMasses.append([rL,rH,rM])
 record = []
 while itr < numNetworksToCheck :
     thisNet = buildRandomNetworkDPR()
     if thisNet is not None :
         itr += 1
         for massList in populationMasses :
+            if printMasses :
+                print(massList)
             for idx,pop in enumerate(thisNet.populations) : # set the population masses
                 pop.mass = massList[idx]
 #                print(pop.mass)
@@ -85,7 +95,7 @@ while itr < numNetworksToCheck :
             record.append({})
             record[-1]['net'] = thisNet
             record[-1]['popmass'] = massList
-            LL,code = learnIt(thisNet)
+            LL,code = learnIt(thisNet,printLearning)
             if code == 1 :
                 if len(LL) > 0 :
                     record[-1]['Lopt'] = LL[-1]
@@ -97,7 +107,7 @@ while itr < numNetworksToCheck :
                 record[-1]['opt converged'] = False
             updateNetworkTollsDPR(thisNet,0,buildUniversalTollDPR)
             if record[-1]['opt converged'] :
-                LLN,code = learnIt(thisNet)
+                LLN,code = learnIt(thisNet,printLearning)
                 if code == 1 :
                     if len(LLN) > 0 :
                         record[-1]['Luninf'] = LLN[-1]
@@ -110,23 +120,31 @@ while itr < numNetworksToCheck :
                 if record[-1]['uninf converged'] :
                     record[-1]['PoA'] = [record[-1]['Luninf']/record[-1]['Lopt']]
                     record[-1]['kk'] = [0]
-                for kappa in KK :
-                    updateNetworkTollsDPR(thisNet,kappa,buildUniversalTollDPR)
-                    LLk, code = learnIt(thisNet)
-                    if code == 1 :
-                        Lk = thisNet.getTotalLatency()
-                        # note: probably need to check if LLk is empty first
-                        record[-1]['PoA'].append(Lk/record[-1]['Lopt'])
-                        record[-1]['kk'].append(kappa)
+                    for kappa in KK :
+                        updateNetworkTollsDPR(thisNet,kappa,buildUniversalTollDPR)
+                        LLk, code = learnIt(thisNet,printLearning)
+                        if code == 1 :
+                            Lk = thisNet.getTotalLatency()
+                            # note: probably need to check if LLk is empty first
+                            record[-1]['PoA'].append(Lk/record[-1]['Lopt'])
+                            record[-1]['kk'].append(kappa)
                         
 
 
 
 
 
-
-plt.plot(record[-1]['kk'],record[-1]['PoA'])
-plt.plot(record[-2]['kk'],record[-2]['PoA'])
+def plotPoAs(rec) :
+    for item in rec :
+        if item['opt converged'] :
+            if item['uninf converged'] :
+                try :
+                    plt.plot(item['kk'],item['PoA'])
+                except KeyError :
+                    pass
+                            
+#plt.plot(record[-1]['kk'],record[-1]['PoA'])
+#plt.plot(record[-2]['kk'],record[-2]['PoA'])
 
 
 

@@ -39,7 +39,7 @@ def getAcceptableIndices(flow,grad) :
     return [i for i,j in enumerate(zip(flow,grad)) if j[0]>ZERO or j[1]>=0] 
     
 def getBadIndices(flow,grad) :
-    # get indices where either flow or gradient are nonnegative
+    # get indices where either flow or gradient are nonpositive
     return [i for i,j in enumerate(zip(flow,grad)) if j[0]<=ZERO and j[1]<0] 
     
 def pareDownPayoffs(flow,payoffs) :
