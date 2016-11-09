@@ -62,5 +62,5 @@ pop1 = G.populations[0]
 pop2 = G.populations[1]
 pop3 = G.populations[2]
 
-res = G.learn(stepsize=.1,maxit=1000)
+#res = G.learn(stepsize=.1,maxit=1000)
 

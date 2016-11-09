@@ -91,9 +91,11 @@ def safeStep(flow,payoffs,stepsize,autoAdjust=True) :
     autoStepsize = stepsize
     gradStep = autoStepsize*grad
     if autoAdjust :
-        if sum(abs(gradStep))>sum(flow)*SAFE_FRAC :
-            autoStepsize = stepsize * SAFE_FRAC*sum(flow)/sum(abs(gradStep))
-            gradStep = grad * autoStepsize
+        gradStep = gradStep/max(sum(flow),sum(abs(grad)))
+        autoStepsize = autoStepsize/max(sum(flow),sum(abs(grad)))
+#        if sum(abs(gradStep))>sum(flow)*SAFE_FRAC :
+#            autoStepsize = stepsize * SAFE_FRAC*sum(flow)/sum(abs(gradStep))
+#            gradStep = grad * autoStepsize
     nextFlow = gradStep + lastFlow
     if np.min(nextFlow) > -ZERO :
         return nextFlow
@@ -110,4 +112,4 @@ def safeStep(flow,payoffs,stepsize,autoAdjust=True) :
             nextFlow = partialGradStep + lastFlow # this takes us to zero
             lastFlow = nextFlow[:]
         # we adjusted the stepsize in the recusion parent, so no need to do it again
-        return safeStep(nextFlow,payoffs,remainingStep,autoAdjust=False) 
+        return safeStep(nextFlow,payoffs,remainingStep,autoAdjust=True) 
