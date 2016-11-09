@@ -9,6 +9,9 @@ Created on Thu Oct 27 16:29:40 2016
 import general.Game as gm
 import matplotlib.pyplot as plt
 import gradient as gr
+import numpy.random as rnd
+import random
+import farokhiHelpers as fh
 
 #latencies = [(lambda x:x),(lambda x:1)]
 #tolls = [(lambda x:x),(lambda x:0)]
@@ -38,8 +41,26 @@ import gradient as gr
 #
 #Gtest.printGame()
 
-payoffs = [3.62,89,85,88,84]
-flow = [0,0,0,.85,.15]
-grad = gr.gradientSelect(payoffs,[])
-nextFlow = gr.safeStep(flow,payoffs,.18)
-print(nextFlow)
+#payoffs = [3.62,89,85,88,84]
+#payoffs = [3.62,89,85,888,584]
+#flow = [0,0,0,.85,.15]
+#grad = gr.gradientSelect(payoffs,[])
+#nextFlow = gr.safeStep(flow,payoffs,1)
+#print(nextFlow)
+
+massList = [0.5,1,2]
+rnd.seed(1)
+G = fh.buildRandomNetworkDPR()
+for idx,pop in enumerate(G.populations) : # set the population masses
+    pop.mass = massList[idx]
+    pop.initState()
+G.totalMass = sum(massList)
+fh.updateNetworkTollsDPR(G,1,fh.buildSMCDPR)
+G._setAggregateState()
+
+pop1 = G.populations[0]
+pop2 = G.populations[1]
+pop3 = G.populations[2]
+
+res = G.learn(stepsize=.1,maxit=1000)
+

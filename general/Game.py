@@ -194,9 +194,10 @@ class Game :
         for pop in self.populations :
             print('')
             print(pop.name)
+            pop._setCurrentCosts(self)
             for path in pop._currentCosts :
-                toprint = path.getName() + ' flow: ' + str(pop._currentCosts[path])
-                toprint += ',\t cost: ' + str(pop._state[path])
+                toprint = path.getName() + ' flow: ' + str(pop._state[path])
+                toprint += ',\t cost: ' + str(pop._currentCosts[path])
                 print(toprint)
         
     def setZeroSensitivities(self) :

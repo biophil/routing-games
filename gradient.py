@@ -9,6 +9,7 @@ import numpy as np
 from operator import itemgetter
 
 ZERO = 1e-12
+SAFE_FRAC = .05
 
 def gradient(payoffs) :
     n = len(payoffs)
@@ -61,7 +62,7 @@ def pareDownPayoffs(flow,payoffs) :
         # more-or-less in place. Should be cleaner.
     return goodIndices
     
-def safeStep(flow,payoffs,stepsize) :
+def safeStep(flow,payoffs,stepsize,autoAdjust=True) :
     n = len(payoffs)
     payoffsShaped = np.reshape(payoffs,n)
     lastFlow = np.reshape(flow,n)
@@ -87,13 +88,18 @@ def safeStep(flow,payoffs,stepsize) :
         grad[goodIndices[idx]] = g
 #        return grad
 #        thisStep = stepsize*grad
-    gradStep = stepsize*grad
+    autoStepsize = stepsize
+    gradStep = autoStepsize*grad
+    if autoAdjust :
+        if sum(abs(gradStep))>sum(flow)*SAFE_FRAC :
+            autoStepsize = stepsize * SAFE_FRAC*sum(flow)/sum(abs(gradStep))
+            gradStep = grad * autoStepsize
     nextFlow = gradStep + lastFlow
     if np.min(nextFlow) > -ZERO :
         return nextFlow
     else : # recurse thru with partial steps
 #            print(nextFlow)
-        remainingStep = stepsize
+        remainingStep = autoStepsize
         while True : # loop here until we've backed up every neg index
             badIdx, overshoot = min(enumerate(nextFlow), key=itemgetter(1))
             if overshoot > -ZERO :
@@ -103,4 +109,5 @@ def safeStep(flow,payoffs,stepsize) :
             partialGradStep = grad*partialStep
             nextFlow = partialGradStep + lastFlow # this takes us to zero
             lastFlow = nextFlow[:]
-        return safeStep(nextFlow,payoffs,remainingStep)
+        # we adjusted the stepsize in the recusion parent, so no need to do it again
+        return safeStep(nextFlow,payoffs,remainingStep,autoAdjust=False) 

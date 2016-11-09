@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 # NOTE: I am not currently being careful with random seeds
 rnd.seed(1)
-numNetworksToCheck = 10
+numNetworksToCheck = 1
 SL = 0.1
 SU = 100
 rL = 1/2
@@ -24,6 +24,7 @@ rH = 2
 KK = [0.5,1,2,5,10]
 
 printMasses = True
+printSense = True
 printLearning = False
 printStep = True
 
@@ -63,32 +64,32 @@ def buildRandomNetworkDPR() :
 def learnIt(game,verb=False):
 #    r = game.totalMass
 #    
-    LL,code = thisNet.learn(stepsize=0.01,maxit=1e3,verbose=verb) # this one seems to work often enough
+    LL,code = thisNet.learn(stepsize=.1,maxit=1e3,verbose=verb) # this one seems to work often enough
     if code == 2 :
         LL,code = thisNet.learn(stepsize=0.001,maxit=1e4,verbose=verb) # try it with a tiny stepsize
         if code == 2 :
-            LL,code = thisNet.learn(stepsize=.0005,maxit=1e4,verbose=verb) # try it with a huge stepsize
+            LL,code = thisNet.learn(stepsize=.0005,maxit=1e3,verbose=verb) # try it with a huge stepsize
     return LL,code
 
 itr = 0
 populationMasses = []
 populationMasses.append([rL,rM,rH])
 populationMasses.append([rL,rL,rL])
-populationMasses.append([rM,rM,rM])
+#populationMasses.append([rM,rM,rM])
 populationMasses.append([rH,rH,rH])
-populationMasses.append([rH,rM,rL])
-populationMasses.append([rH,rL,rM])
+#populationMasses.append([rH,rM,rL])
+#populationMasses.append([rH,rL,rM])
 populationMasses.append([rL,rH,rM])
 
 
 senses = []
 senses.append([SL,SL,SL])
 senses.append([SL,SL,SU])
-senses.append([SL,SU,SL])
-senses.append([SL,SU,SU])
-senses.append([SU,SL,SL])
-senses.append([SU,SL,SU])
-senses.append([SU,SU,SL])
+#senses.append([SL,SU,SL])
+#senses.append([SL,SU,SU])
+#senses.append([SU,SL,SL])
+#senses.append([SU,SL,SU])
+#senses.append([SU,SU,SL])
 senses.append([SU,SU,SU])
 
 record = []
@@ -136,6 +137,8 @@ while itr < numNetworksToCheck :
                 if record[-1]['uninf converged'] :
                     record[-1]['sensitivities'] = []
                     for senseList in senses :
+                        if printSense:
+                            print(senseList)
                         thisNet.setSensitivities(senseList)
                         record[-1]['sensitivities'].append({})
                         record[-1]['sensitivities'][-1]['pop'] = senseList
@@ -159,10 +162,11 @@ def plotPoAs(rec) :
     for item in rec :
         if item['opt converged'] :
             if item['uninf converged'] :
-                try :
-                    plt.plot(item['kk'],item['PoA'])
-                except KeyError :
-                    pass
+                for sense in item['sensitivities'] :
+                    try :
+                        plt.plot(sense['kk'],sense['PoA'])
+                    except KeyError :
+                        print('keyerror')
                 
                 
 
