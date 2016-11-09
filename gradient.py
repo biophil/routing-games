@@ -92,24 +92,23 @@ def safeStep(flow,payoffs,stepsize,autoAdjust=True) :
     gradStep = autoStepsize*grad
     if autoAdjust :
         gradStep = gradStep/max(sum(flow),sum(abs(grad)))
-        autoStepsize = autoStepsize/max(sum(flow),sum(abs(grad)))
+#        autoStepsize = autoStepsize/max(sum(flow),sum(abs(grad)))
 #        if sum(abs(gradStep))>sum(flow)*SAFE_FRAC :
 #            autoStepsize = stepsize * SAFE_FRAC*sum(flow)/sum(abs(gradStep))
 #            gradStep = grad * autoStepsize
     nextFlow = gradStep + lastFlow
     if np.min(nextFlow) > -ZERO :
         return nextFlow
-    else : # recurse thru with partial steps
-#            print(nextFlow)
-        remainingStep = autoStepsize
+    else : # not going to recurse; but still need to loop
+#        remainingStep = autoStepsize
         while True : # loop here until we've backed up every neg index
             badIdx, overshoot = min(enumerate(nextFlow), key=itemgetter(1))
             if overshoot > -ZERO :
                 break
             partialStep = -lastFlow[badIdx]/grad[badIdx] # amount of step that takes us to 0
-            remainingStep = remainingStep - partialStep # still need to take this step
+#            remainingStep = remainingStep - partialStep # still need to take this step
             partialGradStep = grad*partialStep
             nextFlow = partialGradStep + lastFlow # this takes us to zero
             lastFlow = nextFlow[:]
-        # we adjusted the stepsize in the recusion parent, so no need to do it again
-        return safeStep(nextFlow,payoffs,remainingStep,autoAdjust=True) 
+        # now we should have a valid flow
+        return nextFlow
