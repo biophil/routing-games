@@ -273,14 +273,16 @@ class Game :
                         tol = max([tol,abs(npla.norm(diff))])
                         pop.setState(nextFlow)
                 if self.atNashFlow(zero=reltol) :
-                    print('Got to Nash flow; hopefully it worked. tol = ' + str(tol))
-                    print('Number of iterations: ' + str(numit))
+                    if verbose :
+                        print('Got to Nash flow; hopefully it worked. tol = ' + str(tol))
+                        print('Number of iterations: ' + str(numit))
                     code = 1 # 
                     break
 #                print("aggregate state: " + str(self.getAggregateState(update=True)))
             else :
-                print('Max iterations exceeded; sorry dude.')
-                print('Number of iterations: ' + str(numit))
+                if verbose :
+                    print('Max iterations exceeded; sorry dude.')
+                    print('Number of iterations: ' + str(numit))
                 code = 2
                 break
             totLat.append(self.getTotalLatency())

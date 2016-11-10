@@ -62,8 +62,8 @@ pop1 = G.populations[0]
 pop2 = G.populations[1]
 pop3 = G.populations[2]
 
-fh.updateNetworkTollsDPR(G,1,fh.buildUniversalTollDPR)
-G.setSensitivities([100,10,1])
+fh.updateNetworkTollsDPR(G,10,fh.buildUniversalTollDPR)
+G.setSensitivities([100,10,.1])
 
 #res = G.learn(stepsize=1,maxit=1000)
 
