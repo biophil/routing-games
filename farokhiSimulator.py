@@ -63,12 +63,12 @@ def buildRandomNetworkDPR() :
       
 def learnIt(game,verb=False):
 #    r = game.totalMass
-#    
-    LL,code = thisNet.learn(stepsize=.1,maxit=1e3,verbose=verb) # this one seems to work often enough
+    rt = 1e-4
+    LL,code = thisNet.learn(stepsize=.01,maxit=1e3,verbose=verb,reltol=rt) # this one seems to work often enough
     if code == 2 :
-        LL,code = thisNet.learn(stepsize=0.001,maxit=1e4,verbose=verb) # try it with a tiny stepsize
+        LL,code = thisNet.learn(stepsize=0.001,maxit=1e4,verbose=verb,reltol=rt) # try it with a tiny stepsize
         if code == 2 :
-            LL,code = thisNet.learn(stepsize=.0005,maxit=1e3,verbose=verb) # try it with a huge stepsize
+            LL,code = thisNet.learn(stepsize=.0005,maxit=1e3,verbose=verb,reltol=rt) # try it with a huge stepsize
     return LL,code
 
 itr = 0

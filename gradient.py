@@ -62,7 +62,7 @@ def pareDownPayoffs(flow,payoffs) :
         # more-or-less in place. Should be cleaner.
     return goodIndices
     
-def safeStep(flow,payoffs,stepsize,autoAdjust=True) :
+def safeStep(flow,payoffs,stepsize,autoAdjust=False) :
     n = len(payoffs)
     payoffsShaped = np.reshape(payoffs,n)
     lastFlow = np.reshape(flow,n)
