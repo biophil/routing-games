@@ -4,6 +4,7 @@ from operator import itemgetter
 import mysql.connector
 from mysql.connector import errorcode
 from mysql.connector import DataError, DatabaseError, InterfaceError
+import general.Game as gm
 
 
 MYSQL_CONFIG_LEARNING = {
@@ -47,6 +48,26 @@ TABLES['fnets'] = (
     "  FOREIGN KEY (edge13) REFERENCES edges(edge_no)"
     ") ENGINE=InnoDB")
 
+TABLES['pnets'] = (
+    "CREATE TABLE `pnets` ("
+    "  `net_no` int(11) NOT NULL AUTO_INCREMENT,"
+    "  `edge01` int,"
+    "  `edge02` int,"
+    "  `edge03` int,"
+    "  `edge04` int,"
+    "  `edge05` int,"
+    "  `edge06` int,"
+    "  `edge07` int,"
+    "  PRIMARY KEY (`net_no`),"
+    "  FOREIGN KEY (edge01) REFERENCES edges(edge_no),"
+    "  FOREIGN KEY (edge02) REFERENCES edges(edge_no),"
+    "  FOREIGN KEY (edge03) REFERENCES edges(edge_no),"
+    "  FOREIGN KEY (edge04) REFERENCES edges(edge_no),"
+    "  FOREIGN KEY (edge05) REFERENCES edges(edge_no),"
+    "  FOREIGN KEY (edge06) REFERENCES edges(edge_no),"
+    "  FOREIGN KEY (edge07) REFERENCES edges(edge_no)"
+    ") ENGINE=InnoDB")
+
 TABLES['edges'] = (
     "CREATE TABLE `edges` ("
     "  `edge_no` int(11) NOT NULL AUTO_INCREMENT,"
@@ -87,13 +108,44 @@ TABLES['sims'] = (
     "  FOREIGN KEY (net_no) REFERENCES fnets(net_no)"
     ") ENGINE=InnoDB")
 
+TABLES['psims'] = (
+    "CREATE TABLE `psims` ("
+    "  `sim_no` int NOT NULL AUTO_INCREMENT,"
+    "  `net_no` int(11) NOT NULL,"
+    "  `r1` DOUBLE NOT NULL,"
+    "  `r2` DOUBLE NOT NULL,"
+    "  `r3` DOUBLE NOT NULL,"
+    "  `S1` DOUBLE NOT NULL,"
+    "  `S2` DOUBLE NOT NULL,"
+    "  `S3` DOUBLE NOT NULL,"
+    "  `Lopt` float DEFAULT NULL,"
+    "  `Luninf` float DEFAULT NULL,"
+    "  `optiter` int DEFAULT NULL,"
+    "  `uninfiter` int DEFAULT NULL,"
+    "  `poa1` float DEFAULT NULL,"
+    "  `poa2` float DEFAULT NULL,"
+    "  `poa3` float DEFAULT NULL,"
+    "  `poa4` float DEFAULT NULL,"
+    "  `poa5` float DEFAULT NULL,"
+    "  `poa6` float DEFAULT NULL,"
+    "  `k1` float DEFAULT NULL,"
+    "  `k2` float DEFAULT NULL,"
+    "  `k3` float DEFAULT NULL,"
+    "  `k4` float DEFAULT NULL,"
+    "  `k5` float DEFAULT NULL,"
+    "  `k6` float DEFAULT NULL,"
+    "  PRIMARY KEY (`sim_no`),"
+    "  KEY `poa1` (`poa1`),"
+    "  FOREIGN KEY (net_no) REFERENCES pnets(net_no)"
+    ") ENGINE=InnoDB")
+
 
     
 def createTables(config=MYSQL_CONFIG_LEARNING) :
     cnx = mysql.connector.connect(**config)
     cursor = cnx.cursor(prepared=True)
     times = 0
-    while times < 2 :
+    while times < 1 :
         for table in TABLES:
             try:
                 print("Creating table {}: ".format(table), end='')
@@ -136,9 +188,11 @@ def numstr(num) :
     else :
         return str(num)
         
-elist = '('+','.join(['edge'+numstr(i) for i in range(1,14)])+')'
+elistFarokhi = '('+','.join(['edge'+numstr(i) for i in range(1,14)])+')'
+elistParallel = '('+','.join(['edge'+numstr(i) for i in range(1,8)])+')'
 
-def addNetToDB(net,config=MYSQL_CONFIG_LEARNING) :
+def addFNetToDB(net,config=MYSQL_CONFIG_LEARNING) :
+    # adds a Farokhi network to the DB
     cnx = mysql.connector.connect(**config)
     cursor = cnx.cursor(prepared=True)
     possibleEdgeNames = ['e'+str(i) for i in range(1,14)]
@@ -149,7 +203,28 @@ def addNetToDB(net,config=MYSQL_CONFIG_LEARNING) :
             edgesToAdd.append(addEdgeToDB(actualEdgeDict[ename]))
         else :
             edgesToAdd.append(None)
-    insertQ = "INSERT INTO fnets "+elist+" VALUES(" + ','.join(['%s']*13)+')'
+    insertQ = "INSERT INTO fnets "+elistFarokhi+" VALUES(" + ','.join(['%s']*13)+')'
+    cursor.execute(insertQ,tuple(edgesToAdd))
+    cnx.commit()
+    netid = cursor.lastrowid
+    cursor.close()
+    cnx.close()
+    return netid
+
+def addPNetToDB(net,config=MYSQL_CONFIG_LEARNING) :
+    # adds a symmetric parallel net to the DB
+    cnx = mysql.connector.connect(**config)
+    cursor = cnx.cursor(prepared=True)
+    possibleEdgeNames = ['e'+str(i) for i in range(1,8)]
+    actualEdgeDict = {e.name:e for e in net.edges}
+    edgesToAdd = []
+    for ename in possibleEdgeNames :
+        if ename in actualEdgeDict :
+            pass
+            edgesToAdd.append(addEdgeToDB(actualEdgeDict[ename]))
+        else :
+            edgesToAdd.append(None)
+    insertQ = "INSERT INTO pnets "+elistParallel+" VALUES(" + ','.join(['%s']*7)+')'
     cursor.execute(insertQ,tuple(edgesToAdd))
     cnx.commit()
     netid = cursor.lastrowid
@@ -165,16 +240,27 @@ def countSims(record) :
             ct += len(rec['sensitivities'])
     return ct
 
-def addRecordToDB(record,config=MYSQL_CONFIG_LEARNING) :
+def addRecordToDB(record,netType,config=MYSQL_CONFIG_LEARNING) :
     cnx = mysql.connector.connect(**config)
     cursor = cnx.cursor(prepared=True)
+    simtabname = ''
+    if netType == 'Farokhi' :
+        simtabname = 'sims'
+    elif netType == 'SymmParallel' :
+        simtabname = 'psims'
     for rec in record :
         net = rec['net']
         net_id = -1
         if net in nets :
             net_id = nets[net]
         else :
-            net_id = addNetToDB(net) # returns the net_id for db fk
+            if netType == 'Farokhi' :
+                net_id = addFNetToDB(net) # returns the net_id for db fk
+            elif netType == 'SymmParallel' :
+                net_id = addPNetToDB(net) # returns the net_id for db fk
+            else :
+                print('Not either kind of network we\'re ready for')
+                break
             nets[net] = net_id
         if rec['opt converged'] and rec['uninf converged'] :
             Lopt = rec['Lopt']
@@ -194,7 +280,9 @@ def addRecordToDB(record,config=MYSQL_CONFIG_LEARNING) :
                 ss = sense['pop']
                 poas = sense['PoA']
                 kk = sense['kk']
-                insertQ = "INSERT INTO sims (net_no,r1,r2,r3,S1,S2,S3,"
+                print(simtabname)
+                insertQ = "INSERT INTO "
+                insertQ += simtabname +" (net_no,r1,r2,r3,S1,S2,S3,"
                 insertQ += "Lopt,Luninf,optiter,uninfiter,poa1,poa2,poa3,"
                 insertQ += "poa4,poa5,poa6,k1,k2,k3,k4,k5,k6) "
                 insertQ += "VALUES (" + ','.join(["%s"]*23) + ")"
