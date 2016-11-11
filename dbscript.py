@@ -280,7 +280,7 @@ def addRecordToDB(record,netType,config=MYSQL_CONFIG_LEARNING) :
                 ss = sense['pop']
                 poas = sense['PoA']
                 kk = sense['kk']
-                print(simtabname)
+#                print(simtabname)
                 insertQ = "INSERT INTO "
                 insertQ += simtabname +" (net_no,r1,r2,r3,S1,S2,S3,"
                 insertQ += "Lopt,Luninf,optiter,uninfiter,poa1,poa2,poa3,"
