@@ -141,6 +141,7 @@ while itr < numNetworksToCheck and datetime.datetime.now()<timeToStop:
                     record[-1]['num iter to opt'] = len(LL)
                 else :
                     record[-1]['Lopt'] = thisNet.getTotalLatency()
+                    record[-1]['num iter to opt'] = 0
                 record[-1]['opt converged'] = True
             else :
                 record[-1]['opt converged'] = False
@@ -153,6 +154,7 @@ while itr < numNetworksToCheck and datetime.datetime.now()<timeToStop:
                         record[-1]['num iter to uninf'] = len(LLN)
                     else :
                         record[-1]['Luninf'] = thisNet.getTotalLatency()
+                        record[-1]['num iter to uninf'] = 0
                     record[-1]['uninf converged'] = True
                 else :
                     record[-1]['uninf converged'] = False
