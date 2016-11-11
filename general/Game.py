@@ -122,6 +122,19 @@ class Population :
             return self._setCurrentCosts(game)
         else :
             return self._currentCosts
+            
+    def atNashFlow(self,zero=1e-6) :
+        # returns True if we're close to a Nash flow
+        zeroFlowPathCosts = {path: self._currentCosts[path] for path in self.paths if self._state[path]<zero}
+        otherPathCosts = {path: self._currentCosts[path] for path in self.paths if path not in zeroFlowPathCosts}
+        minCost = min(self._currentCosts.values())
+        for path in zeroFlowPathCosts : # ensure zero-flow have high costs
+            if zeroFlowPathCosts[path]/minCost < 1 - zero :
+                return False
+        for path in otherPathCosts : # ensure pos-flow have low costs
+            if otherPathCosts[path]/minCost > 1 + zero :
+                return False
+        return True
 
 class Game :
     
@@ -164,6 +177,7 @@ class Game :
                     self._aggState[path] += pop._state[path]
         for pop in self.populations :
             pop._setAggState(self._aggState)
+            pop._setCurrentCosts(self)
         return self._aggState
         
         
@@ -194,12 +208,36 @@ class Game :
         for pop in self.populations :
             print('')
             print(pop.name)
+            pop._setCurrentCosts(self)
             for path in pop._currentCosts :
-                toprint = path.getName() + ' flow: ' + str(pop._currentCosts[path])
-                toprint += ',\t cost: ' + str(pop._state[path])
+                toprint = path.getName() + ' flow: ' + str(pop._state[path])
+                toprint += ',\t cost: ' + str(pop._currentCosts[path])
                 print(toprint)
         
-    def learn(self,stepsize=0.1,reltol=1e-6,maxit=100,verbose=False) :
+    def setZeroSensitivities(self) :
+        self.setSensitivities([0]*len(self.populations))
+            
+    def setSensitivities(self,sensitivities) :
+        for pop,sens in zip(self.populations,sensitivities) :
+            pop.sensitivity = sens
+            
+    def atNashFlow(self,zero=1e-6) :
+        # returns True if we're close to a Nash flow
+        self._setAggregateState()
+        for pop in self.populations :
+            pop._setCurrentCosts(self)
+            zeroFlowPathCosts = {path: pop._currentCosts[path] for path in pop.paths if pop._state[path]<zero}
+            otherPathCosts = {path: pop._currentCosts[path] for path in pop.paths if path not in zeroFlowPathCosts}
+            minCost = min(pop._currentCosts.values())
+            for path in zeroFlowPathCosts : # ensure zero-flow have high costs
+                if zeroFlowPathCosts[path]/minCost < 1 - zero :
+                    return False
+            for path in otherPathCosts : # ensure pos-flow have low costs
+                if otherPathCosts[path]/minCost > 1 + zero :
+                    return False
+        return True
+
+    def learn(self,stepsize=0.1,reltol=1e-6,maxit=100,verbose=False,veryVerbose=False) :
         # codes:
             # -1 = initialized
             #  1 = algo seems to have converged
@@ -211,39 +249,46 @@ class Game :
             tol = -1
             if numit<=maxit :
                 for pop in self.populations :
-                    self._setAggregateState()
-                    popflow = pop.getState()
-                    popflowList = list(popflow.values())
-                    popCosts = pop.getCurrentCosts(self,update=True)
-                    popCostsList = list(popCosts.values())
-                    dispFlow = [(key.getName(),value) for key,value in popflow.items()]
-                    dispCost = [(key.getName(),value) for key,value in popCosts.items()]
-                    nextFlow = gradient.safeStep(popflowList,popCostsList,stepsize)
-                    nextFlow = np.reshape(nextFlow,len(popflowList))
+#                    self._setAggregateState()
+                    pop._setCurrentCosts(self)
+                    if pop.atNashFlow(zero=reltol) :
+                        pass
+                    else :
+                        popflow = pop.getState()
+                        popflowList = list(popflow.values())
+                        popCosts = pop.getCurrentCosts(self,update=True)
+                        popCostsList = list(popCosts.values())
+                        dispFlow = [(key.getName(),value) for key,value in popflow.items()]
+                        dispCost = [(key.getName(),value) for key,value in popCosts.items()]
+                        stepMod = pop.sensitivity*self.totalMass
+                        nextFlow = gradient.safeStep(popflowList,popCostsList,stepsize/stepMod)
+                        nextFlow = np.reshape(nextFlow,len(popflowList))
+                        if veryVerbose :
+                            print('\n'+pop.name)
+                            print('pop flow: ' + str(dispFlow))
+                            print('pop cost: ' + str(dispCost))
+                            print('next flow: ' + str(nextFlow))
+                        # compute norm difference here:
+                        diff = np.reshape(popflowList,[len(popflowList)])-nextFlow
+                        tol = max([tol,abs(npla.norm(diff))])
+                        pop.setState(nextFlow)
+                if self.atNashFlow(zero=reltol) :
                     if verbose :
-                        print('\n'+pop.name)
-                        print('pop flow: ' + str(dispFlow))
-                        print('pop cost: ' + str(dispCost))
-                        print('next flow: ' + str(nextFlow))
-                    # compute norm difference here:
-                    diff = np.reshape(popflowList,[len(popflowList)])-nextFlow
-                    tol = max([tol,abs(npla.norm(diff))])
-                    pop.setState(nextFlow)
-                if tol<reltol :
-                    print('Min tolerance achieved; hopefully it worked. tol = ' + str(tol))
-                    print('Number of iterations: ' + str(numit))
+                        print('Got to Nash flow; hopefully it worked. tol = ' + str(tol))
+                        print('Number of iterations: ' + str(numit))
                     code = 1 # 
                     break
 #                print("aggregate state: " + str(self.getAggregateState(update=True)))
             else :
-                print('Max iterations exceeded; sorry dude.')
-                print('Number of iterations: ' + str(numit))
+                if verbose :
+                    print('Max iterations exceeded; sorry dude.')
+                    print('Number of iterations: ' + str(numit))
                 code = 2
                 break
             totLat.append(self.getTotalLatency())
             numit += 1
 #        print(self.getAggregateState())
-        if verbose :
+        if veryVerbose :
             self.printAggStateCosts()
         return totLat,code
         

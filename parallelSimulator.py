@@ -5,8 +5,6 @@ Created on Mon Oct 31 14:52:03 2016
 
 @author: pnbrown
 """
-import dill
-import pickle
 import general.Game as gm
 from general.Game import NetworkDefinitionError
 import numpy.random as rnd
@@ -15,9 +13,8 @@ import matplotlib.pyplot as plt
 import datetime
 import time
 
-# NOTE: I am not currently being careful with random seeds
 rnd.seed(1)
-numNetworksToCheck = 100
+numNetworksToCheck = 1000
 SL = 0.1
 SU = 100
 rL = 1/2
@@ -52,16 +49,14 @@ def updateNetworkTollsDPR(game,K,tollBuilder) :
     for edge in game.edges :
         edge.setToll(tollBuilder(edge._latency,K))
 
-def buildRandomNetworkDPR() :
-    numEdges = rnd.randint(8,14)
-    edgeList = random.sample(range(1,14),numEdges)
-    edgeList.sort()
+def buildRandomParNetworkDPR() :
+    numEdges = rnd.randint(2,8)
+    edgeList = list(range(1,numEdges+1))
     latencies = [randomLatencyDPR() for i in edgeList]
-    try :
-        return gm.FarokhiGame(edgeList,latencies)
-    except NetworkDefinitionError as er :
-        print('Invalid Network. Error: ' + str(er))
-        return None
+    tolls = [lambda x:0]*len(latencies)
+    demands = [1,1,1]
+    sensitivities = [1,1,1]
+    return gm.SymmetricParallelNetwork(latencies,tolls,demands,sensitivities)
       
         
 def totalVar(lst) :
@@ -69,13 +64,14 @@ def totalVar(lst) :
         
 def learnIt(game,startss=0.1,verb=False):
     rt = 1e-4
+    totallyVerb = False
     code = 0
     LLtoret = []
     ss = startss
     ssdecay = 0.75
     ssgrowth = 1.1
     while code != 1 and len(LLtoret)<2e4:
-        LL,code = game.learn(stepsize=ss,maxit=10,verbose=verb,reltol=rt)
+        LL,code = game.learn(stepsize=ss,maxit=10,verbose=verb,veryVerbose=totallyVerb,reltol=rt)
         LLtoret += LL
         if verb:
             print('stepsize: ' + str(ss))
@@ -83,7 +79,7 @@ def learnIt(game,startss=0.1,verb=False):
             if totalVar(LL) > 1.1*abs(LL[-1]-LL[0]) :
                 ss = ss*ssdecay
             else :
-                LL,code = game.learn(stepsize=ss,maxit=1e3,verbose=verb,reltol=rt) # this one seems to work often enough
+                LL,code = game.learn(stepsize=ss,maxit=1e3,verbose=verb,veryVerbose=totallyVerb,reltol=rt) # this one seems to work often enough
                 LLtoret += LL
                 if code == 2 :
                     ss = ss*ssgrowth
@@ -95,27 +91,27 @@ itr = 0
 populationMasses = []
 populationMasses.append([rL,rM,rH])
 populationMasses.append([rL,rL,rL])
-populationMasses.append([rM,rM,rM])
-populationMasses.append([rH,rH,rH])
+#populationMasses.append([rM,rM,rM])
+#populationMasses.append([rH,rH,rH])
 populationMasses.append([rH,rM,rL])
-populationMasses.append([rH,rL,rM])
-populationMasses.append([rL,rH,rM])
+#populationMasses.append([rH,rL,rM])
+#populationMasses.append([rL,rH,rM])
 
 
 senses = []
 senses.append([SL,SL,SL])
 senses.append([SL,SL,SU])
 senses.append([SL,SU,SL])
-senses.append([SL,SU,SU])
-senses.append([SU,SL,SL])
+#senses.append([SL,SU,SU])
+#senses.append([SU,SL,SL])
 senses.append([SU,SL,SU])
-senses.append([SU,SU,SL])
-senses.append([SU,SU,SU])
+#senses.append([SU,SU,SL])
+#senses.append([SU,SU,SU])
 
 record = []
-timeToStop = datetime.datetime(2016,11,10,7,0,0)
+timeToStop = datetime.datetime(2016,11,11,7,0,0)
 while itr < numNetworksToCheck and datetime.datetime.now()<timeToStop:
-    thisNet = buildRandomNetworkDPR()
+    thisNet = buildRandomParNetworkDPR()
     if thisNet is not None :
         itr += 1
         print('itr :' + str(itr))
@@ -176,7 +172,7 @@ while itr < numNetworksToCheck and datetime.datetime.now()<timeToStop:
                                 # note: probably need to check if LLk is empty first
                                 record[-1]['sensitivities'][-1]['PoA'].append(Lk/record[-1]['Lopt'])
                                 record[-1]['sensitivities'][-1]['kk'].append(kappa)
-        time.sleep(60*5) # let the compy cool down
+#        time.sleep(60*5) # let the compy cool down
 
 
 
@@ -194,11 +190,6 @@ def plotPoAs(rec) :
                 
                 
 
-def pickleit(topickle,fname) :
-    pickle.dump( topickle, open( fname, "wb" ) )
-    
-def unpickleit(fname) :
-    return pickle.load( open( fname, "rb" ) )
                             
 #plt.plot(record[-1]['kk'],record[-1]['PoA'])
 #plt.plot(record[-2]['kk'],record[-2]['PoA'])
