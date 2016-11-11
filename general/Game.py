@@ -237,7 +237,7 @@ class Game :
                     return False
         return True
 
-    def learn(self,stepsize=0.1,reltol=1e-6,maxit=100,verbose=False) :
+    def learn(self,stepsize=0.1,reltol=1e-6,maxit=100,verbose=False,veryVerbose=False) :
         # codes:
             # -1 = initialized
             #  1 = algo seems to have converged
@@ -263,7 +263,7 @@ class Game :
                         stepMod = pop.sensitivity*self.totalMass
                         nextFlow = gradient.safeStep(popflowList,popCostsList,stepsize/stepMod)
                         nextFlow = np.reshape(nextFlow,len(popflowList))
-                        if verbose :
+                        if veryVerbose :
                             print('\n'+pop.name)
                             print('pop flow: ' + str(dispFlow))
                             print('pop cost: ' + str(dispCost))
@@ -288,7 +288,7 @@ class Game :
             totLat.append(self.getTotalLatency())
             numit += 1
 #        print(self.getAggregateState())
-        if verbose :
+        if veryVerbose :
             self.printAggStateCosts()
         return totLat,code
         
