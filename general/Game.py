@@ -221,6 +221,12 @@ class Game :
         for pop,sens in zip(self.populations,sensitivities) :
             pop.sensitivity = sens
             
+    def setPopMasses(self,masses) :
+        for pop,mass in zip(self.populations,masses) :
+            pop.mass = mass
+            pop.initState()
+        self._setAggregateState()
+            
     def atNashFlow(self,zero=1e-6) :
         # returns True if we're close to a Nash flow
         self._setAggregateState()
@@ -303,7 +309,7 @@ class Game :
         
 class ParallelNetwork(Game) :
     
-    def __init__(self,latencies,tolls,demands,sensitivities,pathSets) :
+    def __init__(self,latencies,demands,sensitivities,pathSets,tolls=None) :
         # for N edges and K populations
         # latencies: length-N iterable of lambdas of latency functions 
         # tolls: length-N iterable of lambdas of tolling functions 
@@ -313,6 +319,8 @@ class ParallelNetwork(Game) :
         edges = []
         paths = []
         pops = []
+        if tolls==None :
+            tolls = [lambda x:0]*len(latencies)
         for idx,(latency,toll) in enumerate(zip(latencies,tolls)) :
             ename = 'e' + str(idx+1)
             pname = 'p' + str(idx+1)
@@ -329,10 +337,10 @@ class ParallelNetwork(Game) :
         
 class SymmetricParallelNetwork(ParallelNetwork) :
     
-    def __init__(self,latencies,tolls,demands,sensitivities) :
+    def __init__(self,latencies,demands,sensitivities,tolls=None) :
         pathSet = list(range(0,len(latencies)))
         pathSets = [pathSet]*len(demands)
-        super().__init__(latencies,tolls,demands,sensitivities,pathSets)
+        super().__init__(latencies,demands,sensitivities,pathSets,tolls)
         
 class FarokhiGame(Game) :
     

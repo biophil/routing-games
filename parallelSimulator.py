@@ -53,10 +53,9 @@ def buildRandomParNetworkDPR() :
     numEdges = rnd.randint(2,8)
     edgeList = list(range(1,numEdges+1))
     latencies = [randomLatencyDPR() for i in edgeList]
-    tolls = [lambda x:0]*len(latencies)
     demands = [1,1,1]
     sensitivities = [1,1,1]
-    return gm.SymmetricParallelNetwork(latencies,tolls,demands,sensitivities)
+    return gm.SymmetricParallelNetwork(latencies,demands,sensitivities)
       
         
 def totalVar(lst) :
@@ -91,22 +90,22 @@ itr = 0
 populationMasses = []
 populationMasses.append([rL,rM,rH])
 populationMasses.append([rL,rL,rL])
-#populationMasses.append([rM,rM,rM])
-#populationMasses.append([rH,rH,rH])
+populationMasses.append([rM,rM,rM])
+populationMasses.append([rH,rH,rH])
 populationMasses.append([rH,rM,rL])
-#populationMasses.append([rH,rL,rM])
-#populationMasses.append([rL,rH,rM])
+populationMasses.append([rH,rL,rM])
+populationMasses.append([rL,rH,rM])
 
 
 senses = []
 senses.append([SL,SL,SL])
 senses.append([SL,SL,SU])
 senses.append([SL,SU,SL])
-#senses.append([SL,SU,SU])
-#senses.append([SU,SL,SL])
+senses.append([SL,SU,SU])
+senses.append([SU,SL,SL])
 senses.append([SU,SL,SU])
-#senses.append([SU,SU,SL])
-#senses.append([SU,SU,SU])
+senses.append([SU,SU,SL])
+senses.append([SU,SU,SU])
 
 record = []
 timeToStop = datetime.datetime(2016,11,11,7,0,0)
@@ -172,7 +171,7 @@ while itr < numNetworksToCheck and datetime.datetime.now()<timeToStop:
                                 # note: probably need to check if LLk is empty first
                                 record[-1]['sensitivities'][-1]['PoA'].append(Lk/record[-1]['Lopt'])
                                 record[-1]['sensitivities'][-1]['kk'].append(kappa)
-#        time.sleep(60*5) # let the compy cool down
+        time.sleep(60*4) # let the compy cool down
 
 
 
