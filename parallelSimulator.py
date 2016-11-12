@@ -53,10 +53,9 @@ def buildRandomParNetworkDPR() :
     numEdges = rnd.randint(2,8)
     edgeList = list(range(1,numEdges+1))
     latencies = [randomLatencyDPR() for i in edgeList]
-    tolls = [lambda x:0]*len(latencies)
     demands = [1,1,1]
     sensitivities = [1,1,1]
-    return gm.SymmetricParallelNetwork(latencies,tolls,demands,sensitivities)
+    return gm.SymmetricParallelNetwork(latencies,demands,sensitivities)
       
         
 def totalVar(lst) :
