@@ -66,3 +66,4 @@ def learnIt(game,startss=0.1,verb=False,rt=1e-6):
                 if verb:
                     print('stepsize: ' + str(ss))
     return LLtoret,code
+    
