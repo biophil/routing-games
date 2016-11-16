@@ -283,6 +283,7 @@ class Game :
                         print('Got to Nash flow; hopefully it worked. tol = ' + str(tol))
                         print('Number of iterations: ' + str(numit))
                     code = 1 # 
+                    totLat.append(self.getTotalLatency())
                     break
 #                print("aggregate state: " + str(self.getAggregateState(update=True)))
             else :

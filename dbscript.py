@@ -6,6 +6,9 @@ from mysql.connector import errorcode
 from mysql.connector import DataError, DatabaseError, InterfaceError
 import general.Game as gm
 import matplotlib.pyplot as plt
+import farokhiHelpers as fh
+import datetime
+import time
 
 
 MYSQL_CONFIG_LEARNING = {
@@ -107,6 +110,39 @@ TABLES['sims'] = (
     "  PRIMARY KEY (`sim_no`),"
     "  KEY `poa1` (`poa1`),"
     "  FOREIGN KEY (net_no) REFERENCES fnets(net_no)"
+    ") ENGINE=InnoDB")
+    
+TABLES['fsimsfixednew'] = (
+    "CREATE TABLE `fsimsfixednew` ("
+    "  `sim_no` int NOT NULL AUTO_INCREMENT,"
+    "  `net_no` int(11) NOT NULL,"
+    "  `r1` DOUBLE NOT NULL,"
+    "  `r2` DOUBLE NOT NULL,"
+    "  `r3` DOUBLE NOT NULL,"
+    "  `S1` DOUBLE NOT NULL,"
+    "  `S2` DOUBLE NOT NULL,"
+    "  `S3` DOUBLE NOT NULL,"
+    "  `Lopt` float DEFAULT NULL,"
+    "  `Luninf` float DEFAULT NULL,"
+    "  `optiter` int DEFAULT NULL,"
+    "  `uninfiter` int DEFAULT NULL,"
+    "  `poa1` float DEFAULT NULL,"
+    "  `poa2` float DEFAULT NULL,"
+    "  `poa3` float DEFAULT NULL,"
+    "  `poa4` float DEFAULT NULL,"
+    "  `poa5` float DEFAULT NULL,"
+    "  `poa6` float DEFAULT NULL,"
+    "  `k1` float DEFAULT NULL,"
+    "  `k2` float DEFAULT NULL,"
+    "  `k3` float DEFAULT NULL,"
+    "  `k4` float DEFAULT NULL,"
+    "  `k5` float DEFAULT NULL,"
+    "  `k6` float DEFAULT NULL,"
+    "  `corrected_version_of` INT(11) NOT NULL,"
+    "  PRIMARY KEY (`sim_no`),"
+    "  KEY `poa1` (`poa1`),"
+    "  FOREIGN KEY (net_no) REFERENCES fnets(net_no),"
+    "  FOREIGN KEY (corrected_version_of) REFERENCES sims(sim_no)"
     ") ENGINE=InnoDB")
 
 TABLES['psims'] = (
@@ -338,7 +374,7 @@ def plotRes(res,plotMethod=plt.plot) :
     for k,poa in zip(res[0],res[1]):
         plotMethod(k,poa)
 
-def buildFNetFromDB(net_no,rr,SS,netType,config=MYSQL_CONFIG_LEARNING) :
+def buildNetFromDB(net_no,rr,SS,netType,config=MYSQL_CONFIG_LEARNING) :
     # netType is either 'p' or 'f'
     cnx = mysql.connector.connect(**config)
     cursor = cnx.cursor(prepared=True)
@@ -389,7 +425,7 @@ def setNetworkPopulation(net,rr,SS) :
     net.setPopMasses(rr)
     net.setSensitivities(SS)
     return net
-
+    
 def getNetworkFromSim(sim_no,table,config=MYSQL_CONFIG_LEARNING) :
     cnx = mysql.connector.connect(**config)
     cursor = cnx.cursor(prepared=True)
@@ -400,17 +436,148 @@ def getNetworkFromSim(sim_no,table,config=MYSQL_CONFIG_LEARNING) :
     rr = sim_res[1:4]
     SS = sim_res[4:]
     if table == 'sims' :
-        return buildFNetFromDB(net_no,rr,SS,netType='f')
+        return buildNetFromDB(net_no,rr,SS,netType='f')
     elif table == 'psims' :
-        return buildPNetFromDB(net_no,rr,SS,netType='p')
+        return buildNetFromDB(net_no,rr,SS,netType='p')
     else : 
         print("You didnt specify a table that I know. I don\'t honestly know how we even got here.")
         return None
     
-
-
-
+def getLatencies(net_no,r1,r2,r3,netType,config=MYSQL_CONFIG_LEARNING) :
+    # returns optimal and untolled latencies for net; pulls from db if they're there
+    # output: Lopt, Luninf, optiter, uninfiter (a value of -1 indicates nonconvergence)
+    cnx = mysql.connector.connect(**config)
+    cursor = cnx.cursor(prepared=True)
+    table = 'fsimsfixednew'
+    if netType == 'p' :
+        table = 'psimsfixed'
+    query = "SELECT Lopt,Luninf,optiter,uninfiter FROM " + table + " WHERE "
+    query += "net_no=%s AND r1=%s AND r2=%s AND r3=%s LIMIT 1"
+    cursor.execute(query,(net_no,r1,r2,r3))
+    row = cursor.fetchone()
+    if row is None : # if we haven't done this yet, go ahead and compute
+        return computeLatencies(net_no,r1,r2,r3,netType,config)
+    else: 
+        net = buildNetFromDB(net_no,[r1,r2,r3],[1,1,1],netType,config=config)
+        return net,row[0],row[1],row[2],row[3]
     
+def computeLatencies(net_no,r1,r2,r3,netType,config=MYSQL_CONFIG_LEARNING) :
+    Lopt = -1
+    Luninf = -1
+    optiter = -1
+    uninfiter = -1
+    net = buildNetFromDB(net_no,[r1,r2,r3],[1,1,1],netType,config=config)
+    net.setSensitivities([1,1,1])
+    fh.updateNetworkTollsDPR(net,1,fh.buildSMCDPR) # get the opt flows
+    net.totalMass = sum([r1,r2,r3])
+    LL,code = fh.learnIt(net,rt=1e-7)
+    if code == 1 :
+        Lopt = LL[-1]
+        optiter = len(LL)
+    fh.updateNetworkTollsDPR(net,0,fh.buildUniversalTollDPR)
+    LL,code = fh.learnIt(net,rt=1e-7) # now get the uninfluenced NF
+    if code == 1 :
+        Luninf = LL[-1]
+        uninfiter = len(LL)
+    return net,Lopt,Luninf,optiter,uninfiter
+    
+        
+        
+def checkSims(table,numToCheck=1,config=MYSQL_CONFIG_LEARNING,iterLim=10000) :
+    cnx = mysql.connector.connect(**config)
+    cursor = cnx.cursor(prepared=True)
+    netType = ''
+    KK = [0.5,1,2,5,10]
+    if table == 'sims' :
+        netType = 'f'
+        updateTable = 'fsimsfixednew'
+    elif table == 'psims' :
+        netType = 'p'
+        updateTable = 'psimsfixed'
+    else :
+        print('bad table specification')
+        return None
+    for i in range(0,numToCheck) :
+        query = "SELECT sim_no,net_no,r1,r2,r3,S1,S2,S3 from " + table + " WHERE "
+        query += "uninfiter<" + str(iterLim) + " AND optiter<"+ str(iterLim)
+        query += " AND verified=FALSE AND correct_version_of IS NULL LIMIT 1"
+        cursor.execute(query)
+        result = cursor.fetchone()
+        if result is None:
+            print('no more records!')
+            return None
+#        print(result)
+        sim_no = result[0]
+        net_no = result[1]
+        r1,r2,r3 = result[2:5]
+        S1,S2,S3 = result[5:]
+        print('Getting to work on simulation number ' + str(sim_no))
+        # somewhere along the line, need a method to check if we've already tried computing
+        # this net and failed; if that's the case, we should just abort.
+        net,Lopt,Luninf,optiter,uninfiter = getLatencies(net_no,r1,r2,r3,netType)
+        if optiter == -1 or uninfiter == -1 :
+            # did not converge; flag this in original table and move on
+            print('flagged net '+ str(net_no) +' from sim ' + str(sim_no))
+            flagQuery = "UPDATE " + table + " SET correct_version_of=1 "
+            flagQuery += "WHERE net_no=%s AND r1=%s AND r2=%s "
+            flagQuery += "AND r3=%s"
+            cursor.execute(flagQuery,(net_no,r1,r2,r3))
+            cnx.commit()
+        else :
+            poas = [Luninf/Lopt]
+            updateKK = [0]
+            net.setSensitivities([S1,S2,S3])
+            for k in KK :
+                fh.updateNetworkTollsDPR(net,k,fh.buildUniversalTollDPR)
+                LL,code = fh.learnIt(net,rt=1e-7)
+                if code == 1 :
+                    poas.append(LL[-1]/Lopt)
+                    updateKK.append(k)
+            insertQ = "INSERT INTO "
+            insertQ += updateTable +" (net_no,r1,r2,r3,S1,S2,S3,"
+            insertQ += "Lopt,Luninf,optiter,uninfiter,poa1,poa2,poa3,"
+            insertQ += "poa4,poa5,poa6,k1,k2,k3,k4,k5,k6,corrected_version_of) "
+            insertQ += "VALUES (" + ','.join(["%s"]*24) + ")"
+            data = (net_no,r1,r2,r3,S1,S2,S3,)
+            data += (Lopt,Luninf,optiter,uninfiter,)
+            data += tuple(poas)
+            data += (None,)*(6-len(poas))
+            data += tuple(updateKK)
+            data += (None,)*(6-len(updateKK))
+            data += (sim_no,)
+            try :
+                cursor.execute(insertQ,data)
+            except DataError :
+                print('data error. bad query: ' + insertQ)
+                print('bad data: ' + str(data))
+            cnx.commit()
+            # finally, mark this particular simulation as fixed
+            print('simulation ' + str(sim_no) + " fixed.")
+            fixedQ = "UPDATE " + table + " SET verified=TRUE WHERE "
+            fixedQ += "sim_no=%s"
+            cursor.execute(fixedQ,(sim_no,))
+            cnx.commit()
+    cursor.close()
+    cnx.close()
+
+
+
+def runAllNight() :
+    timeToStop = datetime.datetime(2016,11,16,7,0,0)
+    try :
+        while datetime.datetime.now()<timeToStop :
+            print('strrrrrrectch.... ok back to work!')
+            start = time.time()
+            checkSims('sims')
+            end = time.time()
+            tosleep = round(end-start)
+            toprint = "That took " + str(round(end-start)) + " seconds, "
+            toprint += "so that\'s how long I\'ll sleep to cool down..."
+            print(toprint)
+            print()
+            time.sleep(tosleep)
+    except KeyboardInterrupt :
+        print("And Done.")
     
     
     
