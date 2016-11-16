@@ -112,8 +112,8 @@ TABLES['sims'] = (
     "  FOREIGN KEY (net_no) REFERENCES fnets(net_no)"
     ") ENGINE=InnoDB")
     
-TABLES['fsimsfixednew'] = (
-    "CREATE TABLE `fsimsfixednew` ("
+TABLES['fsimsfixed'] = (
+    "CREATE TABLE `fsimsfixed` ("
     "  `sim_no` int NOT NULL AUTO_INCREMENT,"
     "  `net_no` int(11) NOT NULL,"
     "  `r1` DOUBLE NOT NULL,"
@@ -448,7 +448,7 @@ def getLatencies(net_no,r1,r2,r3,netType,config=MYSQL_CONFIG_LEARNING) :
     # output: Lopt, Luninf, optiter, uninfiter (a value of -1 indicates nonconvergence)
     cnx = mysql.connector.connect(**config)
     cursor = cnx.cursor(prepared=True)
-    table = 'fsimsfixednew'
+    table = 'fsimsfixed'
     if netType == 'p' :
         table = 'psimsfixed'
     query = "SELECT Lopt,Luninf,optiter,uninfiter FROM " + table + " WHERE "
@@ -490,7 +490,7 @@ def checkSims(table,numToCheck=1,config=MYSQL_CONFIG_LEARNING,iterLim=10000) :
     KK = [0.5,1,2,5,10]
     if table == 'sims' :
         netType = 'f'
-        updateTable = 'fsimsfixednew'
+        updateTable = 'fsimsfixed'
     elif table == 'psims' :
         netType = 'p'
         updateTable = 'psimsfixed'
@@ -505,7 +505,7 @@ def checkSims(table,numToCheck=1,config=MYSQL_CONFIG_LEARNING,iterLim=10000) :
         result = cursor.fetchone()
         if result is None:
             print('no more records!')
-            return None
+            return 1
 #        print(result)
         sim_no = result[0]
         net_no = result[1]
@@ -564,11 +564,12 @@ def checkSims(table,numToCheck=1,config=MYSQL_CONFIG_LEARNING,iterLim=10000) :
 
 def runAllNight() :
     timeToStop = datetime.datetime(2016,11,16,7,0,0)
+    done = None
     try :
-        while datetime.datetime.now()<timeToStop :
+        while datetime.datetime.now()<timeToStop and done is None:
             print('strrrrrrectch.... ok back to work!')
             start = time.time()
-            checkSims('sims')
+            done = checkSims('sims')
             end = time.time()
             tosleep = round(end-start)
             toprint = "That took " + str(round(end-start)) + " seconds, "
