@@ -50,8 +50,8 @@ import numpy.linalg as la
 
 ## This is for examples created on 2/14/2017 p. 5:
     
-three = threePathGeneric([1,1,1,0,0],[0,0.5,1])
-four = fourPathGeneric1([1,1,1,0,0,0,0,0],[0,0.5,1,2])
+#three = threePathGeneric([1,1,1,0,0],[0,0.5,1])
+four = Parallel([1,1,1,0],[0,0.5,1,2])
 
 gl = 0.2
 gu = 4
@@ -59,27 +59,21 @@ z1 = 1/(1+gl)
 z2 = 2*(1/(2*(1+gl))-1/(1+gu))
 z3 = 1/(1+gu)
 
-three.r = 1.5
+#three.r = 1.5
 four.r = 1.5
 zhet = np.array([z1,z2,z3])
-zzL3 = np.array([z1,z1])
+#zzL3 = np.array([z1,z1])
 zzL4 = np.array([z1,z1,z1])
-zzU3 = np.array([z3,z3])
+#zzU3 = np.array([z3,z3])
 zzU4 = np.array([z3,z3,z3])
 fhet = four.fz(zhet)
 fhet2 = four.fz([z1,z3,z3])
-fL3 = three.fz(zzL3)
-fL4 = four.fz(zzL4)
-fU3 = three.fz(zzU3)
-fU4 = four.fz(zzU4)
-fL = np.zeros([4,1])
-fL[0:3] = fL3.copy()
-fU = fU4.copy()
-zopt3 = np.array([.5,.5])
-zopt4 = np.array([.5]*3)
-fopt3 = three.fz(zopt3)
-fopt = np.zeros([4,1])
-fopt[0:3] = fopt3.copy()
+#fL3 = three.fz(zzL3)
+fL = four.fz(zzL4)
+#fU3 = three.fz(zzU3)
+fU = four.fz(zzU4)
+zopt = np.array([.5]*3)
+fopt = four.fz(zopt)
 
 
 fE1 = fhet2.copy()
