@@ -6,7 +6,7 @@ Created on Thu Jun 23 09:05:47 2016
 """
 
 import numpy as np
-from linear import Network,twoPathGeneric,threePathGeneric,fourPathGeneric1
+from linear import Network,twoPathGeneric,threePathGeneric,fourPathGeneric1,Parallel
 import numpy.linalg as la
 
 #t = Network(np.diag([1,2,3,4]),[1,1.5,3,4.5])
@@ -85,7 +85,7 @@ fopt[0:3] = fopt3.copy()
 fE1 = fhet2.copy()
 fE1[2] = 0
 fE1[3] = 0
-gE1 = fopt4.copy()
+gE1 = fopt.copy()
 gE1[2:] = np.zeros([2,1])
 ftil = np.array([[.6288888888,.378888888,.008888888,0]]).T
 Ctilftil = ftil[0]**2 + ftil[1]**2 + 0.5*ftil[1] + ftil[2]**2 + 1.24*ftil[2]
