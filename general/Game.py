@@ -135,7 +135,7 @@ class Population :
             if otherPathCosts[path]/minCost > 1 + zero :
                 return False
         return True
-
+        
 class Game :
     
     def __init__(self,edges,paths,populations,populationState=None) :
@@ -306,6 +306,12 @@ class Game :
                 line = "path " + path.name + ", comprising edges "
                 line += ' '.join(edge.name for edge in path.edges)
                 print(line)
+                
+    def printLatencyFunctions(self,power=4) :
+        for edge in self.edges :
+            const = edge.latency(0)
+            coeff = edge.latency(1)-const
+            print(edge.name + ": " + str(const) + "  +  " + str(coeff) + " (f)^" + str(power))
         
         
 class ParallelNetwork(Game) :

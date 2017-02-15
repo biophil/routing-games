@@ -24,28 +24,57 @@ class Network:
         self.b = reshape(self.b,[-1,1])
         self.n = self.b.size
         n = self.n
-        self.X = zeros([n,n])
+        R,M = self._get_RM(self.A,self.b,self.n)
+        self.R = R
+        self.M = M
+#        self.X = zeros([n,n])
+#        for i in range(n-1):
+#            self.X[i,i:i+2] = [1,-1]
+#        self.Y = self.X[0:-1,:]
+#        self.Q = diag(reshape(-self.X@self.b,[-1]))
+#        self.Q = self.Q[:,0:-1]
+#        self.simplexCon = zeros([n,n])
+#        self.simplexCon[-1,:] = ones([1,n])
+#        self.P = self.X@self.A+self.simplexCon
+#        en = zeros([n,1])
+#        en[-1,0]=1
+#        try:
+#            self.R = solve(self.P,en)
+#            self.M = solve(self.P,self.Q)
+#        except LinAlgError :
+#            print('R and M not set, because you have a singular matrix')
+#            self.R = None
+#            self.M = None
+            
+    def _get_RM(self,A,b,n) :
+        X = zeros([n,n])
         for i in range(n-1):
-            self.X[i,i:i+2] = [1,-1]
-        self.Y = self.X[0:-1,:]
-        self.Q = diag(reshape(-self.X@self.b,[-1]))
-        self.Q = self.Q[:,0:-1]
-        self.simplexCon = zeros([n,n])
-        self.simplexCon[-1,:] = ones([1,n])
-        self.P = self.X@self.A+self.simplexCon
+            X[i,i:i+2] = [1,-1]
+        Y = X[0:-1,:]
+        Q = diag(reshape(-X@b,[-1]))
+        Q = Q[:,0:-1]
+        simplexCon = zeros([n,n])
+        simplexCon[-1,:] = ones([1,n])
+        P = X@A+simplexCon
         en = zeros([n,1])
         en[-1,0]=1
         try:
-            self.R = solve(self.P,en)
-            self.M = solve(self.P,self.Q)
+            R = solve(P,en)
+            M = solve(P,Q)
         except LinAlgError :
             print('R and M not set, because you have a singular matrix')
-            self.R = None
-            self.M = None
+            R = None
+            M = None
+        return R,M
         
     def fz(self,z):
         z = reshape(array(z),[-1,1])
         return self.r*self.R+self.M@z
+        
+    def PoA(self,z) :
+        Lopt = self.Lz(ones([self.n-1,1])/2)[0][0]
+        Lz = self.Lz(z)[0][0]
+        return Lz/Lopt
         
     def costs(self,f,gamma):
         # f is column vector of path flows
@@ -56,10 +85,58 @@ class Network:
     def Lz(self,z):
         z = reshape(array(z),[-1,1])
         f = self.fz(z)
-        return f.T@(self.A@f+self.b)
+        return self.L(f)
+        
+    def L(self,f) :
+        # f is shape-[N,1] array of flows
+        return (f.T@(self.A@f+self.b))[0][0]
         
     def MTAM(self):
         return self.M.T@self.A@self.M
+        
+class Parallel(Network) :
+    def __init__(self,a,b) :
+        # a is length-N list or array
+        # b is length-N list or array
+        self.A = diag(a)
+        self.b = array(b)
+        self.populate()
+        self._lower_populate()
+        
+    def _lower_populate(self) :
+        self.MM = []
+        self.RR = []
+        if self.n>2:
+            for i in range(self.n-1,1,-1) :
+                R,M = self._get_RM(self.A[0:i,0:i],self.b[0:i],i)
+#                print(i,R,M)
+                self.MM.append(M) 
+                self.RR.append(R)
+        
+    def fz(self,z) :
+        z = reshape(array(z),[-1,1])
+        if len(z) == self.n-1 :
+            f = self.r*self.R+self.M@z
+            if f[-1] < 0 : # invalid flow; start working thru fewer-link flows
+                for R,M in zip(self.RR,self.MM) :
+                    n = len(R)
+#                    print(M)
+#                    print(R)
+#                    print(z[0:(n-1)])
+                    fhere = self.r*R + M@z[0:(n-1)]
+                    if fhere[-1]>=0 :
+                        f = zeros([self.n,1])
+                        f[0:len(fhere)] = fhere
+                        break # implicit: else loop again
+            # finally, we may not have fixed it:
+            if f[-1] < 0:
+                f = zeros([self.n,1])
+                f[0] = self.r
+            return f
+        else :
+            raise IndexError('z is the wrong length; needs to be n-1')
+        
+        
         
 class twoPathGeneric(Network):
     # ae is length 3 list or array
@@ -94,7 +171,7 @@ class threePathGeneric(Network):
     # |      e3        |
     # |----------------|
 
-    def __init__(self,a,b,permute=[0,1,2]):
+    def __init__(self,a,b,permutation=[0,1,2]):
         # ae is length 5 list or array
         # if len(b)=3, b is path-b's;
         # if len(b)=5, b is edge-b's
@@ -102,6 +179,7 @@ class threePathGeneric(Network):
         m12[0:2,0:2] = ones([2,2])
         m23 = zeros([3,3])
         m23[1:3,1:3] = ones([2,2])
+        permute = array(permutation)
         self.A = diag(a[0:3])+a[3]*m12+a[4]*m23
         self.A = self.A[permute,:][:,permute]
         if len(b) == 3: # case when b corresponds to path b's

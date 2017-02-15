@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import farokhiHelpers as fh
 import datetime
 import time
+import numpy as np
 
 
 MYSQL_CONFIG_LEARNING = {
@@ -112,8 +113,8 @@ TABLES['sims'] = (
     "  FOREIGN KEY (net_no) REFERENCES fnets(net_no)"
     ") ENGINE=InnoDB")
     
-TABLES['fsimsfixednew'] = (
-    "CREATE TABLE `fsimsfixednew` ("
+TABLES['fsimsfixed'] = (
+    "CREATE TABLE `fsimsfixed` ("
     "  `sim_no` int NOT NULL AUTO_INCREMENT,"
     "  `net_no` int(11) NOT NULL,"
     "  `r1` DOUBLE NOT NULL,"
@@ -143,6 +144,39 @@ TABLES['fsimsfixednew'] = (
     "  KEY `poa1` (`poa1`),"
     "  FOREIGN KEY (net_no) REFERENCES fnets(net_no),"
     "  FOREIGN KEY (corrected_version_of) REFERENCES sims(sim_no)"
+    ") ENGINE=InnoDB")
+    
+TABLES['psimsfixed'] = (
+    "CREATE TABLE `psimsfixed` ("
+    "  `sim_no` int NOT NULL AUTO_INCREMENT,"
+    "  `net_no` int(11) NOT NULL,"
+    "  `r1` DOUBLE NOT NULL,"
+    "  `r2` DOUBLE NOT NULL,"
+    "  `r3` DOUBLE NOT NULL,"
+    "  `S1` DOUBLE NOT NULL,"
+    "  `S2` DOUBLE NOT NULL,"
+    "  `S3` DOUBLE NOT NULL,"
+    "  `Lopt` float DEFAULT NULL,"
+    "  `Luninf` float DEFAULT NULL,"
+    "  `optiter` int DEFAULT NULL,"
+    "  `uninfiter` int DEFAULT NULL,"
+    "  `poa1` float DEFAULT NULL,"
+    "  `poa2` float DEFAULT NULL,"
+    "  `poa3` float DEFAULT NULL,"
+    "  `poa4` float DEFAULT NULL,"
+    "  `poa5` float DEFAULT NULL,"
+    "  `poa6` float DEFAULT NULL,"
+    "  `k1` float DEFAULT NULL,"
+    "  `k2` float DEFAULT NULL,"
+    "  `k3` float DEFAULT NULL,"
+    "  `k4` float DEFAULT NULL,"
+    "  `k5` float DEFAULT NULL,"
+    "  `k6` float DEFAULT NULL,"
+    "  `corrected_version_of` INT(11) NOT NULL,"
+    "  PRIMARY KEY (`sim_no`),"
+    "  KEY `poa1` (`poa1`),"
+    "  FOREIGN KEY (net_no) REFERENCES pnets(net_no),"
+    "  FOREIGN KEY (corrected_version_of) REFERENCES psims(sim_no)"
     ") ENGINE=InnoDB")
 
 TABLES['psims'] = (
@@ -338,17 +372,22 @@ def addRecordToDB(record,netType,config=MYSQL_CONFIG_LEARNING) :
     
     
     
-def getDBPoas(table,plotIt=True,config=MYSQL_CONFIG_LEARNING) :
+def getDBPoas(table,plotIt=True,plotmethod=plt.plot,net_no='all',config=MYSQL_CONFIG_LEARNING) :
     cnx = mysql.connector.connect(**config)
     cursor = cnx.cursor(prepared=True)
+    queryAppendage = ''
+    data = ()
+    if net_no != 'all' :
+        queryAppendage += ' AND net_no=%s'
+        data = (net_no,)
     query = "SELECT k1,k2,k3,k4,k5,k6,poa1,poa2,poa3,poa4,poa5,poa6,sim_no FROM "+table+" WHERE "
-    query += "(poa1>=1) AND "
+    query += "poa1>=1 AND "
     query += "(poa2>=1 OR poa2 IS NULL) AND "
     query += "(poa3>=1 OR poa3 IS NULL) AND "
     query += "(poa4>=1 OR poa4 IS NULL) AND "
     query += "(poa5>=1 OR poa5 IS NULL) AND "
-    query += "(poa6>=1 OR poa6 IS NULL) "
-    cursor.execute(query)
+    query += "(poa6>=1)" + queryAppendage
+    cursor.execute(query,data)
     kk = []
     poas = []
     sim_nos = []
@@ -364,7 +403,7 @@ def getDBPoas(table,plotIt=True,config=MYSQL_CONFIG_LEARNING) :
         sim_nos.append(row[-1])
     if plotIt :
         for k,poa in zip(kk,poas) :
-            plt.plot(k,poa)
+            plotmethod(k,poa,)
     cursor.close()
     cnx.close()
     return kk,poas,sim_nos
@@ -439,7 +478,9 @@ def getNetworkFromSim(sim_no,table,config=MYSQL_CONFIG_LEARNING) :
         return buildNetFromDB(net_no,rr,SS,netType='f')
     elif table == 'psims' :
         return buildNetFromDB(net_no,rr,SS,netType='p')
-    else : 
+    elif table == 'fsimsfixed' : 
+        return buildNetFromDB(net_no,rr,SS,netType='f')
+    else :
         print("You didnt specify a table that I know. I don\'t honestly know how we even got here.")
         return None
     
@@ -448,7 +489,7 @@ def getLatencies(net_no,r1,r2,r3,netType,config=MYSQL_CONFIG_LEARNING) :
     # output: Lopt, Luninf, optiter, uninfiter (a value of -1 indicates nonconvergence)
     cnx = mysql.connector.connect(**config)
     cursor = cnx.cursor(prepared=True)
-    table = 'fsimsfixednew'
+    table = 'fsimsfixed'
     if netType == 'p' :
         table = 'psimsfixed'
     query = "SELECT Lopt,Luninf,optiter,uninfiter FROM " + table + " WHERE "
@@ -482,7 +523,6 @@ def computeLatencies(net_no,r1,r2,r3,netType,config=MYSQL_CONFIG_LEARNING) :
     return net,Lopt,Luninf,optiter,uninfiter
     
         
-        
 def checkSims(table,numToCheck=1,config=MYSQL_CONFIG_LEARNING,iterLim=10000) :
     cnx = mysql.connector.connect(**config)
     cursor = cnx.cursor(prepared=True)
@@ -490,7 +530,7 @@ def checkSims(table,numToCheck=1,config=MYSQL_CONFIG_LEARNING,iterLim=10000) :
     KK = [0.5,1,2,5,10]
     if table == 'sims' :
         netType = 'f'
-        updateTable = 'fsimsfixednew'
+        updateTable = 'fsimsfixed'
     elif table == 'psims' :
         netType = 'p'
         updateTable = 'psimsfixed'
@@ -505,7 +545,7 @@ def checkSims(table,numToCheck=1,config=MYSQL_CONFIG_LEARNING,iterLim=10000) :
         result = cursor.fetchone()
         if result is None:
             print('no more records!')
-            return None
+            return 1
 #        print(result)
         sim_no = result[0]
         net_no = result[1]
@@ -562,27 +602,114 @@ def checkSims(table,numToCheck=1,config=MYSQL_CONFIG_LEARNING,iterLim=10000) :
 
 
 
-def runAllNight() :
-    timeToStop = datetime.datetime(2016,11,16,7,0,0)
+def runAllNight(table='sims') :
+    timeToStop = datetime.datetime(2016,11,17,17,0,0)
+    done = None
     try :
-        while datetime.datetime.now()<timeToStop :
+        while datetime.datetime.now()<timeToStop and done is None:
             print('strrrrrrectch.... ok back to work!')
             start = time.time()
-            checkSims('sims')
+            done = checkSims(table)
             end = time.time()
             tosleep = round(end-start)
             toprint = "That took " + str(round(end-start)) + " seconds, "
             toprint += "so that\'s how long I\'ll sleep to cool down..."
             print(toprint)
             print()
-            time.sleep(tosleep)
+            time.sleep(tosleep/2.0)
     except KeyboardInterrupt :
         print("And Done.")
     
+def createPlots(table='fsimsfixed',net='all',plotmethod=plt.scatter,plotextras=True,boxes=False) :
+    plt.clf()
+    res = getDBPoas(table,plotmethod=plotmethod,net_no=net) # this shouldn't plot
+    dots = plt.gca()
+    dots.set_label('PoA of an instance')
+#    dots.legend()
+    plt.axis(xmin=-.1,xmax=10.1,ymin=1)
+    if plotextras :
+        poabins = {}
+        KKMaster = [0,.5,1,2,5,10]
+        for kk,poas in zip(res[0],res[1]) :
+            for k,poa in zip(kk,poas) :
+                try:
+                    poabins[k].append(poa)
+                except KeyError : # list not initialized yet
+                    poabins[k] = [poa]
+    #    averages = [np.mean(poabins[k]) for k in KKMaster]
+        maxpoas = [max(poabins[k]) for k in KKMaster]
+        poas99 = [np.percentile(poabins[k],99) for k in KKMaster]
+        poas75 = [np.percentile(poabins[k],75) for k in KKMaster]
+    #    plt.plot(KKMaster,averages)
+        maxes = plt.plot(KKMaster,maxpoas,linewidth=4,label='Max PoA found')
+        nnth = plt.plot(KKMaster,poas99,'--',dashes=(10,10),linewidth=5,label='99th percentile of PoA')
+        sfth = plt.plot(KKMaster,poas75,':',dashes=(0.1,10),dash_capstyle='round',linewidth=6,label='75th percentile of PoA')
+        ax = plt.gca()
+        ax.legend(numpoints=4)
+        ax.tick_params(labelsize=18)
+        if boxes :
+            plt.boxplot(list(poabins.values()),positions=list(poabins.keys()),whis=1e100)
+        return poabins
     
+def plotSingleSim(table='fsimsfixed',sim_no=1453,plotmethod=plt.plot,config=MYSQL_CONFIG_LEARNING) :
+    cnx = mysql.connector.connect(**config)
+    cursor = cnx.cursor(prepared=True)
+    query = "SELECT poa1,poa2,poa3,poa4,poa5,poa6,k1,k2,k3,k4,k5,k6 FROM "+table
+    query += " WHERE sim_no=%s"
+    cursor.execute(query,(sim_no,))
+    result = cursor.fetchone()
+    poas = result[0:6]
+    kk = result[6:]
+    poas = [poa for k,poa in zip(kk,poas) if poa is not None and k is not None]
+    kk = [k for k,poa in zip(kk,poas) if poa is not None and k is not None]
+    plt.clf()
+    plotmethod(kk,poas,linewidth=4,label='PoA of Instance')
+    plt.axis(xmin=0,xmax=10,ymin=1)
+    ax = plt.gca()
+    ax.tick_params(labelsize=18)
+    cursor.close()
+    cnx.close()
     
+def computePoAforExNet() :
+    net = buildExFnet()
+    net.setSensitivities([1,1,1])
+    fh.updateNetworkTollsDPR(net,1,fh.buildSMCDPR)
+    # compute opt
+    LLopt,code = fh.learnIt(net,rt=1e-7)
+    Lopt = LLopt[-1]
+    # now compute uninfluenced
+    net.setSensitivities([100,0.1,0.1])
+    fh.updateNetworkTollsDPR(net,0,fh.buildUniversalTollDPR)
+    LLu,code = fh.learnIt(net,rt=1e-7)
+    Luninf = LLu[-1]
+    kk = [0]
+    poas = [Luninf/Lopt]
+    KKmaster = [.1,.2,.3,.4,.5,.6,.7,.8,.9,1,1.5,2,2.5,3,3.5,4,4.5,5,7.5,10,15,20,30,40]
+    for k in KKmaster :
+        print(k)
+        fh.updateNetworkTollsDPR(net,k,fh.buildUniversalTollDPR)
+        LL,code = fh.learnIt(net,rt=1e-7)
+        kk.append(k)
+        poas.append(LL[-1]/Lopt)
+    plt.clf()
+    plt.plot(kk,poas,'k',linewidth=4,label='PoA of Instance')
+    plt.axis(xmin=0,xmax=max(KKmaster),ymin=1)
+    ax = plt.gca()
+    ax.tick_params(labelsize=18)
+    return net,kk,poas
     
+def buildExFnet() :
+    baseNet = buildNetFromDB(52,[.5,.5,.5],[100,.1,.1],'f',config=MYSQL_CONFIG_LEARNING)
+    edgelist = list(range(1,14))
+    latencies = []
+    for edge in baseNet.edges :
+        const = round(edge.latency(0),2)
+        coeff = round(edge.latency(1)-edge.latency(0),2)
+        power = 4
+        edge.setLatency(latbuilder(const,coeff,power))
+    return baseNet
     
-    
+def latbuilder(const,coeff,power) :
+    return lambda x : const + coeff *(x**power)
     
     
