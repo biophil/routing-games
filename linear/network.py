@@ -47,6 +47,11 @@ class Network:
         z = reshape(array(z),[-1,1])
         return self.r*self.R+self.M@z
         
+    def PoA(self,z) :
+        Lopt = self.Lz(ones([self.n-1,1])/2)[0][0]
+        Lz = self.Lz(z)[0][0]
+        return Lz/Lopt
+        
     def costs(self,f,gamma):
         # f is column vector of path flows
         # gamma is real number; corresponds to mc-toll multiplier
@@ -56,7 +61,11 @@ class Network:
     def Lz(self,z):
         z = reshape(array(z),[-1,1])
         f = self.fz(z)
-        return f.T@(self.A@f+self.b)
+        return self.L(f)
+        
+    def L(self,f) :
+        # f is shape-[N,1] array of flows
+        return (f.T@(self.A@f+self.b))[0][0]
         
     def MTAM(self):
         return self.M.T@self.A@self.M
@@ -94,7 +103,7 @@ class threePathGeneric(Network):
     # |      e3        |
     # |----------------|
 
-    def __init__(self,a,b,permute=[0,1,2]):
+    def __init__(self,a,b,permutation=[0,1,2]):
         # ae is length 5 list or array
         # if len(b)=3, b is path-b's;
         # if len(b)=5, b is edge-b's
@@ -102,6 +111,7 @@ class threePathGeneric(Network):
         m12[0:2,0:2] = ones([2,2])
         m23 = zeros([3,3])
         m23[1:3,1:3] = ones([2,2])
+        permute = array(permutation)
         self.A = diag(a[0:3])+a[3]*m12+a[4]*m23
         self.A = self.A[permute,:][:,permute]
         if len(b) == 3: # case when b corresponds to path b's
