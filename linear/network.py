@@ -89,6 +89,7 @@ class Network:
         
     def L(self,f) :
         # f is shape-[N,1] array of flows
+        f = reshape(array(f),[-1,1])
         return (f.T@(self.A@f+self.b))[0][0]
         
     def MTAM(self):

@@ -8,6 +8,8 @@ Created on Thu Jun 23 09:05:47 2016
 import numpy as np
 from linear import Network,twoPathGeneric,threePathGeneric,fourPathGeneric1,Parallel
 import numpy.linalg as la
+import linear as lin
+import matplotlib.pyplot as plt
 
 #t = Network(np.diag([1,2,3,4]),[1,1.5,3,4.5])
 #print(t.X)
@@ -84,3 +86,23 @@ gE1[2:] = np.zeros([2,1])
 ftil = np.array([[.6288888888,.378888888,.008888888,0]]).T
 Ctilftil = ftil[0]**2 + ftil[1]**2 + 0.5*ftil[1] + ftil[2]**2 + 1.24*ftil[2]
 fmean = fL*(1-.522222222222)+fU*.522222222222
+
+bad3 = lin.Parallel([.3,.1,.8],[0,.8,1.25])
+bad3.r = 4
+#check3linkbadness(bad3,zL,.25)
+M = bad3.M@np.ones([2,1])
+R = bad3.R
+r = bad3.r
+ml = bad3.M[:,0:1]
+mu = bad3.M[:,1:]
+
+gl = 0.2
+gu = 3
+zL = 1/(1+gl)
+zU = 1/(1+gu)
+
+rl = 20/9
+ru = r-rl
+
+fl = bad3.R*rl + ml*zL
+fu = bad3.R*ru + mu*zU
