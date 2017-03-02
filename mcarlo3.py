@@ -25,14 +25,14 @@ class BreakIt(Exception) :
 gl = 0.2
 gu = 3
 #gu = 7/3 # homog poa of .2 is same as 7/3
-gu = 1/gl
+#gu = 1/gl
 zL = 1/(1+gl)
 zU = 1/(1+gu)
 
 #zL = 1
 #zU = 0
 
-rnd.seed(2)
+rnd.seed(1)
 
 numNets = 1
 
@@ -66,7 +66,7 @@ def check3linkbadness(net,zL,zU) :
 
 for i in range(numNets) :
     print('checking net number ' + str(i))
-    n = rnd.randint(3,7)
+    n = 3
     a = rnd.rand(n)
     b = 2*rnd.rand(n)
     b.sort()

@@ -110,27 +110,28 @@ class Parallel(Network) :
         if self.n>2:
             for i in range(self.n-1,1,-1) :
                 R,M = self._get_RM(self.A[0:i,0:i],self.b[0:i],i)
-#                print(i,R,M)
-                self.MM.append(M) 
-                self.RR.append(R)
+                sh = M.shape
+                self.MM.append(zeros(self.M.shape))
+                self.MM[-1][0:sh[0],0:sh[1]] = M
+                self.RR.append(zeros(self.R.shape))
+                self.RR[-1][0:sh[0]] = R
         
     def fz(self,z) :
         z = reshape(array(z),[-1,1])
         if len(z) == self.n-1 :
             f = self.r*self.R+self.M@z
-            if f[-1] < 0 : # invalid flow; start working thru fewer-link flows
+            if any(x<0 for x in f) : # invalid flow; start working thru fewer-link flows
                 for R,M in zip(self.RR,self.MM) :
-                    n = len(R)
+#                    n = len(R)
 #                    print(M)
 #                    print(R)
 #                    print(z[0:(n-1)])
-                    fhere = self.r*R + M@z[0:(n-1)]
-                    if fhere[-1]>=0 :
-                        f = zeros([self.n,1])
-                        f[0:len(fhere)] = fhere
+                    fhere = self.r*R + M@z
+                    if not any(x<0 for x in fhere) :
+                        f = fhere
                         break # implicit: else loop again
             # finally, we may not have fixed it:
-            if f[-1] < 0:
+            if any(x<0 for x in f):
                 f = zeros([self.n,1])
                 f[0] = self.r
             return f
