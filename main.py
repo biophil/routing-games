@@ -6,7 +6,7 @@ Created on Thu Jun 23 09:05:47 2016
 """
 
 import numpy as np
-from linear import Network,twoPathGeneric,threePathGeneric,fourPathGeneric1,Parallel
+#from linear import Network,twoPathGeneric,threePathGeneric,fourPathGeneric1,Parallel
 import numpy.linalg as la
 import linear as lin
 import matplotlib.pyplot as plt
@@ -53,7 +53,7 @@ import matplotlib.pyplot as plt
 ## This is for examples created on 2/14/2017 p. 5:
     
 #three = threePathGeneric([1,1,1,0,0],[0,0.5,1])
-four = Parallel([1,1,1,0],[0,0.5,1,2])
+four = lin.Parallel([1,1,1,0],[0,0.5,1,2])
 
 gl = 0.2
 gu = 4
@@ -106,3 +106,6 @@ ru = r-rl
 
 fl = bad3.R*rl + ml*zL
 fu = bad3.R*ru + mu*zU
+
+
+net = lin.ParallelFixed([1,1,1,0],[0,1,2,3])

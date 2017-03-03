@@ -95,6 +95,7 @@ class Network:
     def MTAM(self):
         return self.M.T@self.A@self.M
         
+        
 class Parallel(Network) :
     def __init__(self,a,b) :
         # a is length-N list or array
@@ -138,6 +139,30 @@ class Parallel(Network) :
         else :
             raise IndexError('z is the wrong length; needs to be n-1')
         
+
+        
+class ParallelFixed(Parallel) :
+    def __init__(self,a,b) :
+        self.A = diag(a)
+        self.b = array(b).reshape([-1,1])
+        self.n = len(a)
+        
+    def ft(self,t) :
+        # t is n-vector of tolls (or n-list)
+        # this should be extremely slow because it instantiates a new net, but it seems to work
+        t = array(t)
+        t = t.reshape([-1,1])
+        newconst = t+self.b
+        idx = newconst[:,0].argsort(axis=0)
+        fakeconst = newconst[idx] # sorted b + t
+        tempNet = Parallel(self.A.diagonal()[idx],fakeconst)
+        tempNet.r = self.r
+        unorderedflow = tempNet.fz([1]*(self.n-1))
+#        print(unorderedflow)
+#        print(idx)
+        flow = zeros([self.n,1])
+        flow[idx] = unorderedflow
+        return flow
         
         
 class twoPathGeneric(Network):
@@ -226,5 +251,4 @@ class fourPathGeneric1(Network):
             self.b = array(b[0:4])+b[4]*Ae5[:,0]+b[5]*Ae6[:,1]+b[6]*Ae7[:,2]+b[7]*Ae8[:,3]
             self.b = self.b[permute]
         self.populate()
-        
         

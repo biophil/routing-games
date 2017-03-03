@@ -1,3 +1,3 @@
 #
 
-from .network import Network, twoPathGeneric, threePathGeneric, fourPathGeneric1,Parallel
+from .network import Network, twoPathGeneric, threePathGeneric, fourPathGeneric1,Parallel,ParallelFixed
